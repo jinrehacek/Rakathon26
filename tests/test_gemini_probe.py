@@ -1,6 +1,7 @@
 import importlib.util
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import httpx
 import numpy as np
@@ -105,3 +106,39 @@ def test_crossing_polygon_is_preserved_but_not_used_for_filled_overlap():
     assert any("crossing segments" in reason for reason in result["geometry_issues"])
     assert result["reference_polygon_contacts"] == []
     assert mark.geometry.points_xy == geometry.points_xy
+
+
+@pytest.mark.parametrize("points", [
+    [[100, 100], [900, 900], [900, 100], [500, 500], [100, 700]],
+    [[100, 100], [900, 100], [900, 900], [500, 100], [300, 100], [100, 700]],
+])
+def test_nonadjacent_polygon_contacts_are_preserved_but_not_used_for_overlap(points):
+    geometry = probe.Geometry(kind="closed_outline", points_xy=points, reason="contact")
+    mark = probe.Mark.model_construct(kind="outline", box_2d=[100, 100, 900, 900], geometry=geometry)
+    sectors = [{"key": 1, "name": "test", "reference_coordinates_px": [[0, 0], [99, 0], [99, 99], [0, 99]]}]
+    result = probe.polygon_diagnostics(mark, np.zeros((100, 100), np.uint8), np.array([0, 0, 100, 100]), np.eye(3), sectors)
+    assert result["polygon_area_px"] > 0
+    assert any("nonadjacent segment contacts" in reason for reason in result["geometry_issues"])
+    assert result["reference_polygon_contacts"] == []
+    assert mark.geometry.points_xy == points
+
+
+@pytest.mark.parametrize("root_kind", ["relative", "absolute"])
+def test_dry_run_serializes_relative_and_external_input_paths(tmp_path, monkeypatch, root_kind):
+    monkeypatch.chdir(tmp_path)
+    input_root = Path("relative-input") if root_kind == "relative" else tmp_path / "absolute-input"
+    prepared = input_root / "scan_0001"
+    (prepared / "mid").mkdir(parents=True)
+    (prepared / "metadata.json").write_text(json.dumps({
+        "views": {"mid": {"bounds_xywh": [0, 0, 100, 100], "crop_to_original": [[1, 0, 0], [0, 1, 0], [0, 0, 1]]}}
+    }))
+    image = prepared / "mid" / "original.png"
+    image.write_bytes(b"image")
+    run_root = tmp_path / "runs"
+    args = SimpleNamespace(input_root=input_root, resolution="high", thinking="low", dry_run=True)
+
+    result = probe.run_job(("1:mid", "test-model", "A"), args, run_root, None)
+
+    request = json.loads((run_root / "test-model/scan_0001_mid/A/request.json").read_text())
+    assert result["status"] == "prepared"
+    assert (Path(probe.ROOT) / request["input_path"]).resolve() == image.resolve()

@@ -190,6 +190,13 @@ def has_crossing_segments(points):
         points = points[:-1]
     def orientation(a, b, c):
         return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+    scale = max(1.0, float(np.max(np.abs(points))))
+    coordinate_tolerance = 1e-9 * scale
+    orientation_tolerance = 1e-9 * scale * scale
+    def on_segment(a, b, point):
+        return (abs(orientation(a, b, point)) <= orientation_tolerance
+                and min(a[0], b[0]) - coordinate_tolerance <= point[0] <= max(a[0], b[0]) + coordinate_tolerance
+                and min(a[1], b[1]) - coordinate_tolerance <= point[1] <= max(a[1], b[1]) + coordinate_tolerance)
     n = len(points)
     for i in range(n):
         a, b = points[i], points[(i + 1) % n]
@@ -197,7 +204,15 @@ def has_crossing_segments(points):
             if i == 0 and j == n - 1:
                 continue
             c, d = points[j], points[(j + 1) % n]
-            if orientation(a, b, c) * orientation(a, b, d) < 0 and orientation(c, d, a) * orientation(c, d, b) < 0:
+            ab_c, ab_d = orientation(a, b, c), orientation(a, b, d)
+            cd_a, cd_b = orientation(c, d, a), orientation(c, d, b)
+            if ((ab_c > orientation_tolerance and ab_d < -orientation_tolerance
+                 or ab_c < -orientation_tolerance and ab_d > orientation_tolerance)
+                    and (cd_a > orientation_tolerance and cd_b < -orientation_tolerance
+                         or cd_a < -orientation_tolerance and cd_b > orientation_tolerance)):
+                return True
+            if (on_segment(a, b, c) or on_segment(a, b, d)
+                    or on_segment(c, d, a) or on_segment(c, d, b)):
                 return True
     return False
 
@@ -223,7 +238,7 @@ def polygon_diagnostics(mark, mask, bounds, crop_to_original, sectors):
               "caveat": "CV ink is incomplete and is not ground truth. Reference keys describe template positions, not confirmed patient side or REDCap codes."}
     issues = []
     if crossing:
-        issues.append("Polygon has crossing segments; no filled-area overlap was computed.")
+        issues.append("Polygon has crossing segments or nonadjacent segment contacts; no filled-area overlap was computed.")
     if closed and cv.contourArea(contour) == 0:
         issues.append("Closed polygon has zero area.")
     box = mark.box_2d
@@ -269,7 +284,7 @@ def run_job(job, args, run_root, key):
                "pass": pass_name, "prompt": prompt, "prompt_sha256": digest(PROMPT), "schema": Reading.model_json_schema(),
                "generation_config": body["generationConfig"], "input_sha256": digest(image),
                "source_metadata": source_metadata, "crop_metadata": crop_metadata,
-               "script_sha256": digest(Path(__file__)), "input_path": str(image.relative_to(ROOT)),
+               "script_sha256": digest(Path(__file__)), "input_path": os.path.relpath(image, ROOT),
                "independence": "One image, one fresh contents message; no report, CV candidates, other-pass or other-model answer."}
     save(out / "request.json", request)
     if args.dry_run:
