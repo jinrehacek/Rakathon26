@@ -1,0 +1,42 @@
+redcap_code,import_column,ctsit_key,ctsit_title,zone,zone_name,level,side_code,patient_side,drawn_on_viewer,bbox_distance_px
+sv_base_rs,sur_prostate_regions___sv_base_rs,1,Right seminal vesicles,sv,Seminal vesicle,base,rs,right,left,2.0
+sv_base_ls,sur_prostate_regions___sv_base_ls,2,Left seminal vesicles,sv,Seminal vesicle,base,ls,left,right,7.3
+as_base_rs,sur_prostate_regions___as_base_rs,3,Right anterior fibromuscular stroma base,as,Anterior fibromuscular stroma,base,rs,right,left,8.0
+as_base_ls,sur_prostate_regions___as_base_ls,4,Left anterior fibromuscular stroma base,as,Anterior fibromuscular stroma,base,ls,left,right,6.9
+pza_base_rs,sur_prostate_regions___pza_base_rs,5,Right anterior peripheral zone base,pza,"Peripheral zone, anterior",base,rs,right,left,2.3
+pza_base_ls,sur_prostate_regions___pza_base_ls,6,Left anterior peripheral zone base,pza,"Peripheral zone, anterior",base,ls,left,right,5.4
+tza_base_rs,sur_prostate_regions___tza_base_rs,7,Right anterior transition zone base,tza,"Transition zone, anterior",base,rs,right,left,5.9
+tza_base_ls,sur_prostate_regions___tza_base_ls,8,Left anterior transition zone base,tza,"Transition zone, anterior",base,ls,left,right,3.2
+pzpl_base_rs,sur_prostate_regions___pzpl_base_rs,9,Right lateral posterior peripheral zone base,pzpl,"Peripheral zone, posterolateral",base,rs,right,left,2.2
+pzpl_base_ls,sur_prostate_regions___pzpl_base_ls,10,Left lateral posterior peripheral zone base,pzpl,"Peripheral zone, posterolateral",base,ls,left,right,4.1
+tzp_base_rs,sur_prostate_regions___tzp_base_rs,11,Right posterior reansition zone base,tzp,"Transition zone, posterior",base,rs,right,left,2.2
+tzp_base_ls,sur_prostate_regions___tzp_base_ls,12,Left posterior transition zone base,tzp,"Transition zone, posterior",base,ls,left,right,2.2
+cz_base_rs,sur_prostate_regions___cz_base_rs,13,Right centeral zone base,cz,Central zone,base,rs,right,left,5.4
+cz_base_ls,sur_prostate_regions___cz_base_ls,14,Left central zone base,cz,Central zone,base,ls,left,right,3.0
+pzpm_base_rs,sur_prostate_regions___pzpm_base_rs,15,Right medial posterior peripheral zone base,pzpm,"Peripheral zone, posteromedial",base,rs,right,left,11.2
+pzpm_base_ls,sur_prostate_regions___pzpm_base_ls,16,Left medial posterior peripheral zone base,pzpm,"Peripheral zone, posteromedial",base,ls,left,right,22.0
+as_mid_rs,sur_prostate_regions___as_mid_rs,17,Right anterior fibromuscular stroma mid,as,Anterior fibromuscular stroma,mid,rs,right,left,4.2
+as_mid_ls,sur_prostate_regions___as_mid_ls,18,Left anterior fibromuscular stroma mid,as,Anterior fibromuscular stroma,mid,ls,left,right,3.2
+pza_mid_rs,sur_prostate_regions___pza_mid_rs,19,Right anterior peripheral zone mid,pza,"Peripheral zone, anterior",mid,rs,right,left,5.0
+pza_mid_ls,sur_prostate_regions___pza_mid_ls,20,Left anterior peripheral zone mid,pza,"Peripheral zone, anterior",mid,ls,left,right,3.5
+tza_mid_rs,sur_prostate_regions___tza_mid_rs,21,Right anterior transition zone mid,tza,"Transition zone, anterior",mid,rs,right,left,2.4
+tza_mid_ls,sur_prostate_regions___tza_mid_ls,22,Left anterior transition zone mid,tza,"Transition zone, anterior",mid,ls,left,right,3.0
+pzpl_mid_rs,sur_prostate_regions___pzpl_mid_rs,23,Right lateral posterior peripheral zone mid,pzpl,"Peripheral zone, posterolateral",mid,rs,right,left,3.4
+pzpl_mid_ls,sur_prostate_regions___pzpl_mid_ls,24,Left lateral posterior peripheral zone mid,pzpl,"Peripheral zone, posterolateral",mid,ls,left,right,3.3
+tzp_mid_rs,sur_prostate_regions___tzp_mid_rs,25,Right posterior transition zone mid,tzp,"Transition zone, posterior",mid,rs,right,left,4.0
+tzp_mid_ls,sur_prostate_regions___tzp_mid_ls,26,Left posterior transition zone mid,tzp,"Transition zone, posterior",mid,ls,left,right,3.4
+pzpm_mid_rs,sur_prostate_regions___pzpm_mid_rs,27,Right medial posterior peripheral zone mid,pzpm,"Peripheral zone, posteromedial",mid,rs,right,left,4.4
+pzpm_mid_ls,sur_prostate_regions___pzpm_mid_ls,28,Left medial posterior peripheral zone mid,pzpm,"Peripheral zone, posteromedial",mid,ls,left,right,4.0
+as_apex_rs,sur_prostate_regions___as_apex_rs,29,Right anterior fibromuscular stroma apex,as,Anterior fibromuscular stroma,apex,rs,right,left,2.9
+as_apex_ls,sur_prostate_regions___as_apex_ls,30,Left anterior fibromuscular stroma apex,as,Anterior fibromuscular stroma,apex,ls,left,right,5.7
+pza_apex_rs,sur_prostate_regions___pza_apex_rs,31,Right anterior peripheral zone apex,pza,"Peripheral zone, anterior",apex,rs,right,left,2.3
+pza_apex_ls,sur_prostate_regions___pza_apex_ls,32,Left anterior peripheral zone apex,pza,"Peripheral zone, anterior",apex,ls,left,right,2.5
+tza_apex_rs,sur_prostate_regions___tza_apex_rs,33,Right anterior transition zone apex,tza,"Transition zone, anterior",apex,rs,right,left,2.4
+tza_apex_ls,sur_prostate_regions___tza_apex_ls,34,Left anterior transition zone apex,tza,"Transition zone, anterior",apex,ls,left,right,9.4
+pzpl_apex_rs,sur_prostate_regions___pzpl_apex_rs,35,Right lateral posterior peripheral zone apex,pzpl,"Peripheral zone, posterolateral",apex,rs,right,left,1.4
+pzpl_apex_ls,sur_prostate_regions___pzpl_apex_ls,36,Left lateral posterior peripheral zone apex,pzpl,"Peripheral zone, posterolateral",apex,ls,left,right,2.4
+pzpm_apex_rs,sur_prostate_regions___pzpm_apex_rs,37,Right medial posterior peripheral zone apex,pzpm,"Peripheral zone, posteromedial",apex,rs,right,left,5.2
+pzpm_apex_ls,sur_prostate_regions___pzpm_apex_ls,38,Left medial posterior peripheral zone apex,pzpm,"Peripheral zone, posteromedial",apex,ls,left,right,5.6
+tzp_apex_rs,sur_prostate_regions___tzp_apex_rs,39,Right posterior transtion zone apex,tzp,"Transition zone, posterior",apex,rs,right,left,2.6
+tzp_apex_ls,sur_prostate_regions___tzp_apex_ls,40,Left posterior transtion zone apex,tzp,"Transition zone, posterior",apex,ls,left,right,2.6
+urethra,sur_prostate_regions___urethra,41,External urethral sphincter,urethra,External urethral sphincter,apex-to-base (single choice),,,centre,4.2

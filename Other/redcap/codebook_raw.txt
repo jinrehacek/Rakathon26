@@ -1,0 +1,2008 @@
+COMPARE pro Rakathon
+Notifications
+System Notifications
+General Notifications
+Conversations
+ 
+
+Create new conversation
+
+Mark all conversations as read
+ Project Home
+ Codebook
+ Codebook 
+
+The Codebook is a human-readable, read-only version of the project's Data Dictionary and serves as a quick reference for viewing the attributes of any given field in the project without having to download and interpret the Data Dictionary. Note: Checkbox fields have their coded values displayed both in the format defined by users in the Online Designer/Data Dictionary as well as in the extended format seen in data imports and exports (i.e., field___code).
+
+ Print page	 Data Dictionary Codebook	16-10-2026 22:31
+Field finder: — When viewing this page, collapse: all fields all additional tables
+Instruments
+
+Instrument	Form Name
+Patients personal data	patients_personal_data
+Urology C61	urology_c61
+Urology - lesion biopsy	urology_lesion_biopsy
+Urology - laboratory markers	urology_laboratory_markers
+Magnetic resonance imaging	magnetic_resonance_imaging
+Magnetic resonance quality	magnetic_resonance_quality
+Surgery C61	surgery_c61
+Surgery C61 - resected lesion	surgery_c61_resected_lesion
+Other procedures	other_procedures
+ Collapse all instruments
+#	Variable / Field Name	Field Label
+Field Note
+	Field Attributes (Field Type, Validation, Choices, Calculations, etc.)
+ Instrument:Patients personal data(patients_personal_data)
+ Collapse
+
+1	[record_id]	Record ID	text, Identifier
+2	[project_version]	Project version	text (number, Min: 0)
+Field Annotation: @DEFAULT = '1.0'; @HIDDEN
+3	[ppd]	PATIENT'S PERSONAL DATA * Name: {name} * Surname: {surname} * Birth certificate number {birth_id}   Birth certificate number should be in format without backslash. ID of the first MRI examination: {cislo_mri_1} * Date of birth: {dob:icons} * Informed consent signed? {inf_souhlas} {dat_inf_souhlas_lbl} {dat_inf_souhlas} PATIENT SETTINGS Patient ID (CLADE IS): {subject_id}	descriptive
+4	[name]	* Name	text, Required, Identifier
+5	[surname]	* Surname	text, Required, Identifier
+6	[birth_id]	* Birth certificate number	text, Required, Identifier
+Field Annotation: @CHARLIMIT=10
+7	[cislo_mri_1]	ID of the first MRI examination	text (integer, Min: 0, Max: 9999999)
+8	[dob_year]	Year - date of birth	text
+Field Annotation: @CALCTEXT(if((starts_with([birth_id], '0') OR starts_with([birth_id], '1') OR starts_with([birth_id], '2')), concat("20", left([birth_id], 2)), concat("19", left([birth_id], 2)))) @HIDDEN
+9	[dob_month]	Month - date of birth	text
+Field Annotation: @CALCTEXT(mid([birth_id], 3, 2)) @HIDDEN
+10	[dob_day]	Day - date of birth	text
+Field Annotation: @CALCTEXT(mid([birth_id], 5, 2)) @HIDDEN
+11	[dob]	Date of Birth	text
+Field Annotation: @CALCTEXT(concat_ws ("-", [dob_day], [dob_month], [dob_year]))
+12	[inf_souhlas]	Informed consent signed?	radio, Required
+1	Yes
+2	No - will be delivered later
+3	No - the patient died
+4	No - the patient is lost to follow-up
+
+Custom alignment: LH
+13	[dat_inf_souhlas_lbl]
+Show the field ONLY if:
+[inf_souhlas]="1"
+	* Date of informed consent signing:	descriptive
+14	[dat_inf_souhlas]
+Show the field ONLY if:
+[inf_souhlas]="1"
+	Date of informed consent signing	text (date_dmy, Min: 1900-01-01, Max: today), Required
+15	[subject_id]	Patient ID	text, Identifier
+Custom alignment: RH
+16	[patients_personal_data_complete]	
+Section Header: Form Status
+Complete?	dropdown
+0	Incomplete
+1	Unverified
+2	Complete
+
+ Instrument:Urology C61(urology_c61)
+ Collapse
+
+17	[exam_done]	EXAMINATION/BIOPSY DONE * Physical examination done?: {pe_done} * Biopsy done?: {biopsy_done}	descriptive
+18	[pe_done]	Physical examination done?:	yesno, Required
+1	Yes
+0	No
+
+19	[biopsy_done]	Biopsy done?	yesno, Required
+1	Yes
+0	No
+
+20	[pe_uro]
+Show the field ONLY if:
+[pe_done] = "1"
+	PHYSICAL EXAMINATION (UROLOGY) * Date of examination:       {date_exam}       * Positive family history: * Presence of BRCA1 mutation: * Presence of BRCA2 mutation:   {family_history} {brca1} {brca2}   Digital rectal examination: {ct_stage_uro_lbl}     {dre} {ct_stage_uro}     Treatment:       {treatment}       NCCN risk group: ERSPC risk of CA [%]: ERSPC risk of significant CA [%]: Kattan nomogram: {nccn_risk} {erspc_risk} {erspc_signif_risk} {kattan}	descriptive
+21	[date_exam]	Date of examination:	text (date_dmy, Min: 1900-01-01, Max: today), Required
+22	[family_history]	Positive family history:	radio, Required
+1	Yes
+2	No
+9	Unknown
+
+23	[brca1]	Presence of BRCA1 mutation	radio, Required
+1	Yes
+2	No
+3	Unknown
+
+24	[brca2]	Presence of BRCA2 mutation	radio, Required
+1	Yes
+2	No
+3	Unknown
+
+25	[dre]	Digital rectal examination:	radio
+1	Normal
+2	Abnormal
+
+26	[ct_stage_uro_lbl]
+Show the field ONLY if:
+[dre]="2"
+	Clinical T stage:	descriptive
+27	[ct_stage_uro]
+Show the field ONLY if:
+[dre]="2"
+	Clinical T stage:	dropdown
+1	CT1c
+2	CT2a
+3	CT2b
+4	CT2c
+5	CT3a
+
+28	[treatment]	Treatment	dropdown (autocomplete)
+1	Active surveillance
+2	Radiotherapy
+3	Surgery
+4	Systemic therapy
+
+29	[nccn_risk]	NCCN risk group:	dropdown
+1	Very low
+2	Low
+3	Intermediate favourable
+4	Intermediate unfavourable
+5	High
+6	Very high
+7	Metastatic
+
+30	[erspc_risk]	ERSPC risk of CA	text (integer, Min: 0)
+31	[erspc_signif_risk]	ERSPC risk of significant CA	text (integer, Min: 0)
+32	[kattan]	Kattan nomogram:	dropdown (autocomplete)
+1	Organ-confined disease
+2	Extraprostatic extension
+3	Seminal vesicles invasion
+4	Lymph node invasion
+
+33	[uro_biopsy]
+Show the field ONLY if:
+[biopsy_done] = "1"
+	BIOPSY * Biopsy date: Name of physician performing the biopsy: Name of pathologist: {biopsy_date} {doctor_biopsy} {patholog} * Total number of samples examined: * Total number of positive samples:     {total_no_samples} {pos_no_samples}     * Biopsy indication:       {biopsy_indicate}       Histological finding: {histol_finding} * Final histology:     {fin_his}    	descriptive
+34	[biopsy_date]	Biopsy date	text (date_dmy, Min: 1900-01-01, Max: today), Required
+35	[doctor_biopsy]	Name of physician performing the biopsy:	text
+36	[patholog]	Name of pathologist:	text
+37	[total_no_samples]	Total number of samples examined:	text (integer, Min: 1, Max: 30), Required
+38	[pos_no_samples]	Total number of positive samples:	text (integer, Min: 0, Max: [total_no_samples]), Required
+39	[biopsy_indicate]	Biopsy indication:	radio, Required
+1	During active surveillance
+2	Primary biopsy
+3	Re-biopsy
+
+40	[histol_finding]	Histological finding	notes
+41	[fin_his]	Final histology:	dropdown (autocomplete), Required
+1	Benign
+2	Carcinoma
+3	Neuroendocrine tumor
+4	Sarcoma
+5	Haematolymphoid tumor
+6	Metastasis
+7	Other malignant tumors
+
+42	[urology_c61_complete]	
+Section Header: Form Status
+Complete?	dropdown
+0	Incomplete
+1	Unverified
+2	Complete
+
+ Instrument:Urology - lesion biopsy(urology_lesion_biopsy)
+ Collapse
+
+43	[biopsy_uro]	BIOPSY * Biopsy date: * Number of similar positive samples: {biopsy_date_uro} {similar_samp}   * Localization method: Mark all on the right side: Mark all on the left side: {local_method} {mark_all_right} {mark_all_left}   If you selected yes, click on Save & stay to view your selection.	descriptive
+44	[biopsy_date_uro]	Biopsy date:	sql, Required
+45	[similar_samp]	Number of similar samples	dropdown, Required
+1	1
+2	2
+3	3
+4	4
+5	5
+6	6
+7	7
+8	8
+9	9
+10	10
+11	11
+12	12
+13	13
+14	14
+15	15
+16	16
+17	17
+18	18
+19	19
+20	20
+21	21
+22	22
+23	23
+24	24
+25	25
+26	26
+27	27
+28	28
+29	29
+30	30
+
+46	[local_method]	Localization method:	dropdown, Required
+1	Cognitive
+2	Direct palpation
+3	MR-US fusion
+4	MRI guided
+5	Systematic
+
+47	[checked_ls]	Checked left side	calc
+Calculation: sum([uro_prostate_regions(pzpm_apex_ls)], [uro_prostate_regions(tzp_apex_ls)], [uro_prostate_regions(pzpl_apex_ls)], [uro_prostate_regions(pza_apex_ls)], [uro_prostate_regions(tza_apex_ls)], [uro_prostate_regions(as_apex_ls)], [uro_prostate_regions(pzpm_mid_ls)], [uro_prostate_regions(pzpl_mid_ls)], [uro_prostate_regions(pza_mid_ls)], [uro_prostate_regions(as_mid_ls)], [uro_prostate_regions(tza_mid_ls)], [uro_prostate_regions(tzp_mid_ls)], [uro_prostate_regions(cz_base_ls)], [uro_prostate_regions(pzpl_base_ls)], [uro_prostate_regions(pza_base_ls)], [uro_prostate_regions(as_base_ls)], [uro_prostate_regions(tza_base_ls)], [uro_prostate_regions(tzp_base_ls)], [uro_prostate_regions(pzpm_base_ls)], [uro_prostate_regions(sv_base_ls)]) + (([mark_all_left]+1)*100)
+Field Annotation: @HIDDEN
+48	[checked_rs]	Checked right side	calc
+Calculation: sum([uro_prostate_regions(pzpl_apex_rs)], [uro_prostate_regions(pzpm_apex_rs)], [uro_prostate_regions(tzp_apex_rs)], [uro_prostate_regions(as_apex_rs)], [uro_prostate_regions(tza_apex_rs)], [uro_prostate_regions(pza_apex_rs)], [uro_prostate_regions(pzpl_mid_rs)], [uro_prostate_regions(pzpm_mid_rs)], [uro_prostate_regions(as_mid_rs)], [uro_prostate_regions(tza_mid_rs)], [uro_prostate_regions(tzp_mid_rs)], [uro_prostate_regions(pza_mid_rs)], [uro_prostate_regions(pzpl_base_rs)], [uro_prostate_regions(cz_base_rs)], [uro_prostate_regions(tzp_base_rs)], [uro_prostate_regions(tza_base_rs)], [uro_prostate_regions(as_base_rs)], [uro_prostate_regions(pza_base_rs)], [uro_prostate_regions(pzpm_base_rs)], [uro_prostate_regions(sv_base_rs)]) + (([mark_all_right]+1)*100)
+Field Annotation: @HIDDEN
+49	[mark_all_right]	Mark all on the right side:	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT="0"; @IF([checked_rs]>'200' and [checked_rs]<'220', @SETVALUE='0', '')
+50	[mark_all_left]	Mark all on the left side:	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT="0"; @IF([checked_ls]>'200' and [checked_ls]<'220', @SETVALUE='0', '')
+51	[uro_prostate_regions]	Prostate regions	checkbox
+pzpl_apex_rs	uro_prostate_regions___pzpl_apex_rs	pzpl_apex_rs
+pzpm_apex_rs	uro_prostate_regions___pzpm_apex_rs	pzpm_apex_rs
+tzp_apex_rs	uro_prostate_regions___tzp_apex_rs	tzp_apex_rs
+pzpm_apex_ls	uro_prostate_regions___pzpm_apex_ls	pzpm_apex_ls
+tzp_apex_ls	uro_prostate_regions___tzp_apex_ls	tzp_apex_ls
+pzpl_apex_ls	uro_prostate_regions___pzpl_apex_ls	pzpl_apex_ls
+pza_apex_ls	uro_prostate_regions___pza_apex_ls	pza_apex_ls
+tza_apex_ls	uro_prostate_regions___tza_apex_ls	tza_apex_ls
+as_apex_ls	uro_prostate_regions___as_apex_ls	as_apex_ls
+as_apex_rs	uro_prostate_regions___as_apex_rs	as_apex_rs
+tza_apex_rs	uro_prostate_regions___tza_apex_rs	tza_apex_rs
+pza_apex_rs	uro_prostate_regions___pza_apex_rs	pza_apex_rs
+urethra	uro_prostate_regions___urethra	urethra
+pzpl_mid_rs	uro_prostate_regions___pzpl_mid_rs	pzpl_mid_rs
+pzpm_mid_rs	uro_prostate_regions___pzpm_mid_rs	pzpm_mid_rs
+pzpm_mid_ls	uro_prostate_regions___pzpm_mid_ls	pzpm_mid_ls
+pzpl_mid_ls	uro_prostate_regions___pzpl_mid_ls	pzpl_mid_ls
+pza_mid_ls	uro_prostate_regions___pza_mid_ls	pza_mid_ls
+as_mid_ls	uro_prostate_regions___as_mid_ls	as_mid_ls
+tza_mid_ls	uro_prostate_regions___tza_mid_ls	tza_mid_ls
+tzp_mid_ls	uro_prostate_regions___tzp_mid_ls	tzp_mid_ls
+as_mid_rs	uro_prostate_regions___as_mid_rs	as_mid_rs
+tza_mid_rs	uro_prostate_regions___tza_mid_rs	tza_mid_rs
+tzp_mid_rs	uro_prostate_regions___tzp_mid_rs	tzp_mid_rs
+pza_mid_rs	uro_prostate_regions___pza_mid_rs	pza_mid_rs
+pzpl_base_rs	uro_prostate_regions___pzpl_base_rs	pzpl_base_rs
+cz_base_rs	uro_prostate_regions___cz_base_rs	cz_base_rs
+cz_base_ls	uro_prostate_regions___cz_base_ls	cz_base_ls
+pzpl_base_ls	uro_prostate_regions___pzpl_base_ls	pzpl_base_ls
+pza_base_ls	uro_prostate_regions___pza_base_ls	pza_base_ls
+as_base_ls	uro_prostate_regions___as_base_ls	as_base_ls
+tza_base_ls	uro_prostate_regions___tza_base_ls	tza_base_ls
+tzp_base_ls	uro_prostate_regions___tzp_base_ls	tzp_base_ls
+tzp_base_rs	uro_prostate_regions___tzp_base_rs	tzp_base_rs
+tza_base_rs	uro_prostate_regions___tza_base_rs	tza_base_rs
+as_base_rs	uro_prostate_regions___as_base_rs	as_base_rs
+pza_base_rs	uro_prostate_regions___pza_base_rs	pza_base_rs
+pzpm_base_ls	uro_prostate_regions___pzpm_base_ls	pzpm_base_ls
+pzpm_base_rs	uro_prostate_regions___pzpm_base_rs	pzpm_base_rs
+sv_base_rs	uro_prostate_regions___sv_base_rs	sv_base_rs
+sv_base_ls	uro_prostate_regions___sv_base_ls	sv_base_ls
+
+Field Annotation: @HIDDEN; @IF(([checked_rs]='200' and [checked_ls]='200'), @SETVALUE='pzpl_apex_rs,pzpm_apex_rs,tzp_apex_rs,pzpm_apex_ls,tzp_apex_ls,pzpl_apex_ls,pza_apex_ls,tza_apex_ls,as_apex_ls,as_apex_rs,tza_apex_rs,pza_apex_rs,pzpl_mid_rs,pzpm_mid_rs,pzpm_mid_ls,pzpl_mid_ls,pza_mid_ls,as_mid_ls,tza_mid_ls,tzp_mid_ls,as_mid_rs,tza_mid_rs,tzp_mid_rs,pza_mid_rs,pzpl_base_rs,cz_base_rs,cz_base_ls,pzpl_base_ls,pza_base_ls,as_base_ls,tza_base_ls,tzp_base_ls,tzp_base_rs,tza_base_rs,as_base_rs,pza_base_rs,pzpm_base_ls,pzpm_base_rs,sv_base_rs,sv_base_ls, [uro_prostate_regions]', ''); @IF(([checked_rs]='200' and [checked_ls]<>'200'), @SETVALUE='pzpl_apex_rs,pzpm_apex_rs,tzp_apex_rs,as_apex_rs, tza_apex_rs,pza_apex_rs,pzpl_mid_rs,pzpm_mid_rs,as_mid_rs,tza_mid_rs,tzp_mid_rs,pza_mid_rs,pzpl_base_rs,cz_base_rs,tzp_base_rs,tza_base_rs,as_base_rs,pza_base_rs,pzpm_base_rs,sv_base_rs, [uro_prostate_regions]', ''); @IF(([checked_ls]='200' and [checked_rs]<>'200'), @SETVALUE='pzpm_apex_ls,tzp_apex_ls,pzpl_apex_ls,pza_apex_ls,tza_apex_ls,as_apex_ls,pzpm_mid_ls,pzpl_mid_ls,pza_mid_ls,as_mid_ls,tza_mid_ls,tzp_mid_ls,cz_base_ls,pzpl_base_ls,pza_base_ls,as_base_ls,tza_base_ls,tzp_base_ls,pzpm_base_ls,sv_base_ls, [uro_prostate_regions]', '');
+52	[uro_prostate_imagemap]	LESION     RIGHT SIDE  LEFT SIDE BIOPSY RESULT * Histological type:   {hist_type_uro}   Length of pathological infiltration in core [mm]:   {size_core}       Gleason primary score: Gleason primary score (%):     {gleason_prim_grade_uro} {gleason_prim_perc_uro}     Gleason secondary score: Gleason secondary score (%):     {gleason_sec_grade_uro} {gleason_sec_perc_uro}     Gleason tertiary score: Gleason tertiary score (%):     {gleason_tert_grade_uro} {gleason_tert_perc_uro}    	descriptive
+Field Annotation: @CUSTOM_IMAGEMAP=registerImageMap("prostateimage", "prostatemap", "uro_prostate_regions", "rgba(255, 0, 0, 0.6)", "data-key");
+53	[hist_type_uro]	Histological type:	dropdown, Required
+1	Benign
+2	Carcinoma
+3	Neuroendocrine tumor
+4	Sarcoma
+5	Haematolymphoid tumor
+6	Metastasis
+7	Other malignant tumors
+
+54	[size_core]	Length of pathological infiltration in core [mm]	text (number_comma_decimal, Min: 1, Max: 25)
+55	[gleason_prim_grade_uro]	Gleason primary score	dropdown
+1	1
+2	2
+3	3
+4	4
+5	5
+
+56	[gleason_prim_perc_uro]	Gleason primary score [%]	text (number, Min: 0, Max: 100)
+57	[gleason_sec_grade_uro]	Gleason secondary score	dropdown
+1	1
+2	2
+3	3
+4	4
+5	5
+
+58	[gleason_sec_perc_uro]	Gleason secondary score [%]	text (number, Min: 0, Max: 100)
+59	[gleason_tert_grade_uro]	Gleason tertiary score	dropdown
+1	1
+2	2
+3	3
+4	4
+5	5
+
+60	[gleason_tert_perc_uro]	Gleason tertiary score [%]	text (number, Min: 0, Max: 100)
+61	[urology_lesion_biopsy_complete]	
+Section Header: Form Status
+Complete?	dropdown
+0	Incomplete
+1	Unverified
+2	Complete
+
+ Instrument:Urology - laboratory markers(urology_laboratory_markers)
+ Collapse
+
+62	[lab_exam]	LABORATORY MARKERS * Sample collection date: * PSA [ng/ml]: fPSA [ng/ml]: {sample_date} {psa:icons} {fpsa} {unk_dat} {unk_psa}   Date of PHI sample collection: Prostatic Health Index (PHI):   {date_phi} {phi}  	descriptive
+63	[sample_date]
+Show the field ONLY if:
+[unk_dat(1)]='0'
+	Sample collection date:	text (date_dmy, Min: 1900-01-01, Max: today), Required
+64	[psa]
+Show the field ONLY if:
+[unk_psa(1)]='0'
+	PSA [ng/ml]:
+Prostate-specific antigen
+	text (number_comma_decimal, Min: 0), Required
+65	[fpsa]	fPSA [ng/ml]:
+Free prostate specific antigen
+	text (number_comma_decimal, Min: 0)
+66	[unk_dat]	Unknown date	checkbox
+1	unk_dat___1	Unknown date
+
+67	[unk_psa]	Unknown PSA	checkbox
+1	unk_psa___1	Unknown PSA
+
+68	[date_phi]	Date of PHI sample collection	text (date_dmy, Min: 1900-01-01, Max: today)
+Field Annotation: @IF((isblankormissingcode([phi]) = '0' AND isblankormissingcode([date_phi]) = '1' ), @SETVALUE='[sample_date]','')
+69	[phi]	Prostatic Health Index (PHI)	text (number, Min: 0)
+70	[psa_date]	Psa + Date	text
+Field Annotation: @CALCTEXT(concat([psa], "; ", [sample_date])) @HIDDEN
+71	[urology_laboratory_markers_complete]	
+Section Header: Form Status
+Complete?	dropdown
+0	Incomplete
+1	Unverified
+2	Complete
+
+ Instrument:Magnetic resonance imaging(magnetic_resonance_imaging)
+ Collapse
+
+72	[mri]	MAGNETIC RESONANCE IMAGING * MRI scan date: PI-RADS version: * Indication: {date_exam_mri} {pirads_ver} {indication} Radiology report: {finding} Primary radiologist: Second radiologist: * Haemorrhagic foci: {radiologist_1} {radiologist_2} {haemo_foci} Comment on examination:     {com_exam}	descriptive
+73	[date_exam_mri]	Date of examination	text (date_dmy, Min: 1900-01-01, Max: today), Required
+74	[pirads_ver]	PIRADS version	dropdown
+1	2.0
+2	2.1
+
+Field Annotation: @DEFAULT='2' @READONLY
+75	[indication]	Indication	dropdown, Required
+1	Staging
+2	After negative biopsy
+3	Prior to first biopsy
+4	Recurrency
+5	Active surveillance
+6	Screening - ProstaRisk
+7	Other
+
+76	[finding]	Finding	notes
+77	[radiologist_1]	Primary radiologist	dropdown
+1	Jan Křístek
+2	Michal Standara
+3	Miloš Pacal
+4	Adam Kollár
+5	Aleš Neumann
+6	Other
+
+78	[radiologist_2]	Second radiologist	dropdown
+1	Jan Křístek
+2	Michal Standara
+3	Miloš Pacal
+4	Adam Kollár
+5	Aleš Neumann
+6	Other
+
+79	[haemo_foci]	Haemorrhagic foci	yesno, Required
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='0'
+80	[com_exam]	Comment on examination:	text
+81	[prostate_volume]	PROSTATE VOLUME Prostate volume determined by a radiologist: * Dimension TRANS [mm]: * Dimension AP [mm]: * Dimension LONGIT [mm]: Prostate volume [ml]: {prostate_x_mm} {prostate_y_mm} {prostate_z_mm} {prostate_vol} List of entered PSA values: * PSA [ng/ml]: PSAD: {psa_mri_help} {psa_mri} {psad}   Segmented prostate volume determined automatically: Segmented volume [ml]: Data source: PSAD (segm.volume): {segm_vol_1} {data_source_1} {psad_segm_1} {segm_vol_2} {data_source_2} {psad_segm_2} {segm_vol_3} {data_source_3} {psad_segm_3} How to determine the size of the prostate (for PI-RADS)?	descriptive
+(Attachment: PIRADS_roviny.pdf, Display format: Inline image/PDF)
+82	[prostate_x_mm]	Dimension X
+dimension of prostate
+	text (number, Min: 0, Max: 100), Required
+Field Annotation: @PLACEHOLDER='mm'
+83	[prostate_y_mm]	Dimension Y
+dimension of prostate
+	text (number, Min: 0, Max: 100), Required
+Field Annotation: @PLACEHOLDER='mm'
+84	[prostate_z_mm]	Dimension Z
+dimension of prostate
+	text (number, Min: 0, Max: 100), Required
+Field Annotation: @PLACEHOLDER='mm'
+85	[prostate_vol]	Prostate volume (ml)
+automatically calculated volume of prastate
+	calc
+Calculation: if(isblankormissingcode([prostate_vol_txt]), round([prostate_x_mm]*[prostate_y_mm]*[prostate_z_mm]*0.0005236,2), [prostate_vol_txt])
+86	[prostate_vol_txt]	Prostate volume (ml)
+automatically calculated volume of prastate
+	text (number, Min: 0)
+Field Annotation: @HIDDEN
+87	[psa_mri_help]	PSA [ng/ml]:
+Prostate-specific antigen
+	sql
+88	[psa_mri]	PSA [ng/ml]:
+Prostate-specific antigen
+	text (number_comma_decimal, Min: 0), Required
+89	[psad]	PSAD
+Prostate specific antigen density
+	calc
+Calculation: if(isblankormissingcode([psad_txt]), round([psa_mri]/[prostate_vol],2), [psad_txt])
+90	[psad_txt]	PSAD
+Prostate specific antigen density
+	text (number, Min: 0)
+Field Annotation: @HIDDEN
+91	[segm_vol_1]	Segmented volume
+Volume calculated by software/device/AI
+	text (number, Min: 0, Max: 300)
+Field Annotation: @PLACEHOLDER='Volume calculated by software/device/AI'
+92	[segm_vol_2]
+Show the field ONLY if:
+isblankormissingcode([segm_vol_1]) = '0'
+	Segmented volume
+Volume calculated by software/device/AI
+	text (number, Min: 0, Max: 300)
+Field Annotation: @PLACEHOLDER='Volume calculated by software/device/AI'
+93	[segm_vol_3]
+Show the field ONLY if:
+isblankormissingcode([segm_vol_2]) = '0'
+	Segmented volume
+Volume calculated by software/device/AI
+	text (number, Min: 0, Max: 300)
+Field Annotation: @PLACEHOLDER='Volume calculated by software/device/AI'
+94	[data_source_1]	Data source
+Data source of prostate volume calculation
+	dropdown
+1	AI
+2	MRi
+3	software (MINT)
+
+95	[data_source_2]
+Show the field ONLY if:
+isblankormissingcode([segm_vol_1]) = '0'
+	Data source
+Data source of prostate volume calculation
+	dropdown
+1	AI
+2	MRi
+3	software (MINT)
+
+96	[data_source_3]
+Show the field ONLY if:
+isblankormissingcode([segm_vol_2]) = '0'
+	Data source
+Data source of prostate volume calculation
+	dropdown
+1	AI
+2	MRi
+3	software (MINT)
+
+97	[psad_segm_1]	PSAD (segm.volume)
+Prostate specific antigen density calculated from the segmented volume
+	calc
+Calculation: round([psa_mri]/[segm_vol_1],2)
+98	[psad_segm_2]
+Show the field ONLY if:
+isblankormissingcode([segm_vol_1]) = '0'
+	PSAD (segm.volume)
+Prostate specific antigen density calculated from the segmented volume
+	calc
+Calculation: round([psa_mri]/[segm_vol_2],2)
+99	[psad_segm_3]
+Show the field ONLY if:
+isblankormissingcode([segm_vol_2]) = '0'
+	PSAD (segm.volume)
+Prostate specific antigen density calculated from the segmented volume
+	calc
+Calculation: round([psa_mri]/[segm_vol_3],2)
+100	[mri_prostate_regions_1]	Prostate regions	checkbox
+pzpl_apex_rs	mri_prostate_regions_1___pzpl_apex_rs	pzpl_apex_rs
+pzpm_apex_rs	mri_prostate_regions_1___pzpm_apex_rs	pzpm_apex_rs
+tzp_apex_rs	mri_prostate_regions_1___tzp_apex_rs	tzp_apex_rs
+pzpm_apex_ls	mri_prostate_regions_1___pzpm_apex_ls	pzpm_apex_ls
+tzp_apex_ls	mri_prostate_regions_1___tzp_apex_ls	tzp_apex_ls
+pzpl_apex_ls	mri_prostate_regions_1___pzpl_apex_ls	pzpl_apex_ls
+pza_apex_ls	mri_prostate_regions_1___pza_apex_ls	pza_apex_ls
+tza_apex_ls	mri_prostate_regions_1___tza_apex_ls	tza_apex_ls
+as_apex_ls	mri_prostate_regions_1___as_apex_ls	as_apex_ls
+as_apex_rs	mri_prostate_regions_1___as_apex_rs	as_apex_rs
+tza_apex_rs	mri_prostate_regions_1___tza_apex_rs	tza_apex_rs
+pza_apex_rs	mri_prostate_regions_1___pza_apex_rs	pza_apex_rs
+urethra	mri_prostate_regions_1___urethra	urethra
+pzpl_mid_rs	mri_prostate_regions_1___pzpl_mid_rs	pzpl_mid_rs
+pzpm_mid_rs	mri_prostate_regions_1___pzpm_mid_rs	pzpm_mid_rs
+pzpm_mid_ls	mri_prostate_regions_1___pzpm_mid_ls	pzpm_mid_ls
+pzpl_mid_ls	mri_prostate_regions_1___pzpl_mid_ls	pzpl_mid_ls
+pza_mid_ls	mri_prostate_regions_1___pza_mid_ls	pza_mid_ls
+as_mid_ls	mri_prostate_regions_1___as_mid_ls	as_mid_ls
+tza_mid_ls	mri_prostate_regions_1___tza_mid_ls	tza_mid_ls
+tzp_mid_ls	mri_prostate_regions_1___tzp_mid_ls	tzp_mid_ls
+as_mid_rs	mri_prostate_regions_1___as_mid_rs	as_mid_rs
+tza_mid_rs	mri_prostate_regions_1___tza_mid_rs	tza_mid_rs
+tzp_mid_rs	mri_prostate_regions_1___tzp_mid_rs	tzp_mid_rs
+pza_mid_rs	mri_prostate_regions_1___pza_mid_rs	pza_mid_rs
+pzpl_base_rs	mri_prostate_regions_1___pzpl_base_rs	pzpl_base_rs
+cz_base_rs	mri_prostate_regions_1___cz_base_rs	cz_base_rs
+cz_base_ls	mri_prostate_regions_1___cz_base_ls	cz_base_ls
+pzpl_base_ls	mri_prostate_regions_1___pzpl_base_ls	pzpl_base_ls
+pza_base_ls	mri_prostate_regions_1___pza_base_ls	pza_base_ls
+as_base_ls	mri_prostate_regions_1___as_base_ls	as_base_ls
+tza_base_ls	mri_prostate_regions_1___tza_base_ls	tza_base_ls
+tzp_base_ls	mri_prostate_regions_1___tzp_base_ls	tzp_base_ls
+tzp_base_rs	mri_prostate_regions_1___tzp_base_rs	tzp_base_rs
+tza_base_rs	mri_prostate_regions_1___tza_base_rs	tza_base_rs
+as_base_rs	mri_prostate_regions_1___as_base_rs	as_base_rs
+pza_base_rs	mri_prostate_regions_1___pza_base_rs	pza_base_rs
+pzpm_base_ls	mri_prostate_regions_1___pzpm_base_ls	pzpm_base_ls
+pzpm_base_rs	mri_prostate_regions_1___pzpm_base_rs	pzpm_base_rs
+sv_base_rs	mri_prostate_regions_1___sv_base_rs	sv_base_rs
+sv_base_ls	mri_prostate_regions_1___sv_base_ls	sv_base_ls
+
+Field Annotation: @HIDDEN
+101	[mri_prostate_imagemap_1]	LESION NO.1     RIGHT SIDE  LEFT SIDE * PI-RADS score:       {pirads_1}       Enter the x-dimension of lesion only if PI-RADS score is 3 or higher.  {lesion_x_mm_mr_1_lbl} Y-dimension of the lesion [mm]: Z-dimension of the lesion [mm]: ADC {lesion_x_mm_mr_1} {lesion_y_mm_mr_1} {lesion_z_mm_mr_1} {adc_1} Length of contact with capsule [mm]: Extracapsular extension: Capsule bulging:   {lenght_capsula_1} {extracaps_ext_mr_1} {caps_bulging_1}   Comment on lesion:       {com_les_1} * Was another lesion detected by MRI? {oth_lesion_done_1}	descriptive
+Field Annotation: @CUSTOM_IMAGEMAP=registerImageMap("prostateimage", "prostatemap", "mri_prostate_regions_1", "rgba(255, 0, 0, 0.6)", "data-key");
+102	[pirads_1]	PI-RADS score	dropdown, Required
+1	1
+2	2
+3	3
+4	4
+5	5
+
+103	[lesion_x_mm_mr_1_lbl]
+Show the field ONLY if:
+[pirads_1] = '3' or [pirads_1] = '4' or [pirads_1] = '5'
+	* X-dimension of the lesion [mm]:	descriptive
+104	[lesion_x_mm_mr_1]
+Show the field ONLY if:
+[pirads_1] = '3' or [pirads_1] = '4' or [pirads_1] = '5'
+	X-dimension of the lesion	text (number, Min: 0, Max: 100), Required
+Field Annotation: @PLACEHOLDER = "mm"
+105	[lesion_y_mm_mr_1]	Y-dimension of the lesion	text (number, Min: 0, Max: 100)
+Field Annotation: @PLACEHOLDER = "mm"
+106	[lesion_z_mm_mr_1]	Z-dimension of the lesion	text (number, Min: 0, Max: 100)
+Field Annotation: @PLACEHOLDER = "mm"
+107	[adc_1]	ADC
+Apparent diffusion coefficient
+	text (number, Min: 0, Max: 2000)
+Field Annotation: @PLACEHOLDER = "Apparent diffusion coefficient"
+108	[lenght_capsula_1]	Length of contact with capsule (mm)	text (number, Min: 0, Max: 100)
+Field Annotation: @PLACEHOLDER = "mm"
+109	[extracaps_ext_mr_1]	Extracapsular extension	radio
+1	Yes
+2	Suspicious
+3	No
+
+Field Annotation: @DEFAULT='3'
+110	[caps_bulging_1]	Capsule bulging	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='0'
+111	[com_les_1]	Comment on lesion	text
+112	[oth_lesion_done_1]	Was another lesion detected by MRI?_1	yesno, Required
+1	Yes
+0	No
+
+113	[mri_prostate_regions_2]	Prostate regions	checkbox
+pzpl_apex_rs	mri_prostate_regions_2___pzpl_apex_rs	pzpl_apex_rs
+pzpm_apex_rs	mri_prostate_regions_2___pzpm_apex_rs	pzpm_apex_rs
+tzp_apex_rs	mri_prostate_regions_2___tzp_apex_rs	tzp_apex_rs
+pzpm_apex_ls	mri_prostate_regions_2___pzpm_apex_ls	pzpm_apex_ls
+tzp_apex_ls	mri_prostate_regions_2___tzp_apex_ls	tzp_apex_ls
+pzpl_apex_ls	mri_prostate_regions_2___pzpl_apex_ls	pzpl_apex_ls
+pza_apex_ls	mri_prostate_regions_2___pza_apex_ls	pza_apex_ls
+tza_apex_ls	mri_prostate_regions_2___tza_apex_ls	tza_apex_ls
+as_apex_ls	mri_prostate_regions_2___as_apex_ls	as_apex_ls
+as_apex_rs	mri_prostate_regions_2___as_apex_rs	as_apex_rs
+tza_apex_rs	mri_prostate_regions_2___tza_apex_rs	tza_apex_rs
+pza_apex_rs	mri_prostate_regions_2___pza_apex_rs	pza_apex_rs
+urethra	mri_prostate_regions_2___urethra	urethra
+pzpl_mid_rs	mri_prostate_regions_2___pzpl_mid_rs	pzpl_mid_rs
+pzpm_mid_rs	mri_prostate_regions_2___pzpm_mid_rs	pzpm_mid_rs
+pzpm_mid_ls	mri_prostate_regions_2___pzpm_mid_ls	pzpm_mid_ls
+pzpl_mid_ls	mri_prostate_regions_2___pzpl_mid_ls	pzpl_mid_ls
+pza_mid_ls	mri_prostate_regions_2___pza_mid_ls	pza_mid_ls
+as_mid_ls	mri_prostate_regions_2___as_mid_ls	as_mid_ls
+tza_mid_ls	mri_prostate_regions_2___tza_mid_ls	tza_mid_ls
+tzp_mid_ls	mri_prostate_regions_2___tzp_mid_ls	tzp_mid_ls
+as_mid_rs	mri_prostate_regions_2___as_mid_rs	as_mid_rs
+tza_mid_rs	mri_prostate_regions_2___tza_mid_rs	tza_mid_rs
+tzp_mid_rs	mri_prostate_regions_2___tzp_mid_rs	tzp_mid_rs
+pza_mid_rs	mri_prostate_regions_2___pza_mid_rs	pza_mid_rs
+pzpl_base_rs	mri_prostate_regions_2___pzpl_base_rs	pzpl_base_rs
+cz_base_rs	mri_prostate_regions_2___cz_base_rs	cz_base_rs
+cz_base_ls	mri_prostate_regions_2___cz_base_ls	cz_base_ls
+pzpl_base_ls	mri_prostate_regions_2___pzpl_base_ls	pzpl_base_ls
+pza_base_ls	mri_prostate_regions_2___pza_base_ls	pza_base_ls
+as_base_ls	mri_prostate_regions_2___as_base_ls	as_base_ls
+tza_base_ls	mri_prostate_regions_2___tza_base_ls	tza_base_ls
+tzp_base_ls	mri_prostate_regions_2___tzp_base_ls	tzp_base_ls
+tzp_base_rs	mri_prostate_regions_2___tzp_base_rs	tzp_base_rs
+tza_base_rs	mri_prostate_regions_2___tza_base_rs	tza_base_rs
+as_base_rs	mri_prostate_regions_2___as_base_rs	as_base_rs
+pza_base_rs	mri_prostate_regions_2___pza_base_rs	pza_base_rs
+pzpm_base_ls	mri_prostate_regions_2___pzpm_base_ls	pzpm_base_ls
+pzpm_base_rs	mri_prostate_regions_2___pzpm_base_rs	pzpm_base_rs
+sv_base_rs	mri_prostate_regions_2___sv_base_rs	sv_base_rs
+sv_base_ls	mri_prostate_regions_2___sv_base_ls	sv_base_ls
+
+Field Annotation: @HIDDEN
+114	[mri_prostate_imagemap_2]
+Show the field ONLY if:
+[oth_lesion_done_1] = '1'
+	LESION NO.2     RIGHT SIDE  LEFT SIDE * PI-RADS score:       {pirads_2}       Enter the x-dimension of lesion only if PI-RADS score is 3 or higher.  {lesion_x_mm_mr_2_lbl} Y-dimension of the lesion [mm]: Z-dimension of the lesion [mm]: ADC {lesion_x_mm_mr_2} {lesion_y_mm_mr_2} {lesion_z_mm_mr_2} {adc_2} Length of contact with capsule [mm]: Extracapsular extension: Capsule bulging:   {lenght_capsula_2} {extracaps_ext_mr_2} {caps_bulging_2}   Comment on lesion:       {com_les_2} * Was another lesion detected by MRI? {oth_lesion_done_2}	descriptive
+Field Annotation: @CUSTOM_IMAGEMAP=registerImageMap("prostateimage2", "prostatemap2", "mri_prostate_regions_2", "rgba(255, 0, 0, 0.6)", "data-key");
+115	[pirads_2]	PI-RADS score	dropdown, Required
+1	1
+2	2
+3	3
+4	4
+5	5
+
+116	[lesion_x_mm_mr_2_lbl]
+Show the field ONLY if:
+[pirads_2] = '3' or [pirads_2] = '4' or [pirads_2] = '5'
+	* X-dimension of the lesion [mm]:	descriptive
+117	[lesion_x_mm_mr_2]
+Show the field ONLY if:
+[pirads_2] = '3' or [pirads_2] = '4' or [pirads_2] = '5'
+	X-dimension of the lesion	text (number, Min: 0, Max: 100), Required
+Field Annotation: @PLACEHOLDER = "mm"
+118	[lesion_y_mm_mr_2]	Y-dimension of the lesion	text (number, Min: 0, Max: 100)
+Field Annotation: @PLACEHOLDER = "mm"
+119	[lesion_z_mm_mr_2]	Z-dimension of the lesion	text (number, Min: 0, Max: 100)
+Field Annotation: @PLACEHOLDER = "mm"
+120	[adc_2]	ADC
+Apparent diffusion coefficient
+	text (number, Min: 0, Max: 2000)
+Field Annotation: @PLACEHOLDER = "Apparent diffusion coefficient"
+121	[lenght_capsula_2]	Length of contact with capsule (mm)	text (number, Min: 0, Max: 100)
+Field Annotation: @PLACEHOLDER = "mm"
+122	[extracaps_ext_mr_2]	Extracapsular extension	radio
+1	Yes
+2	Suspicious
+3	No
+
+Field Annotation: @IF([oth_lesion_done_1]='1', @DEFAULT='3', '')
+123	[caps_bulging_2]	Capsule bulging	yesno
+1	Yes
+0	No
+
+Field Annotation: @IF([oth_lesion_done_1]='1', @DEFAULT='0', '')
+124	[com_les_2]	Comment on lesion	text
+125	[oth_lesion_done_2]	Was another lesion detected by MRI?_1	yesno, Required
+1	Yes
+0	No
+
+126	[mri_prostate_regions_3]	Prostate regions	checkbox
+pzpl_apex_rs	mri_prostate_regions_3___pzpl_apex_rs	pzpl_apex_rs
+pzpm_apex_rs	mri_prostate_regions_3___pzpm_apex_rs	pzpm_apex_rs
+tzp_apex_rs	mri_prostate_regions_3___tzp_apex_rs	tzp_apex_rs
+pzpm_apex_ls	mri_prostate_regions_3___pzpm_apex_ls	pzpm_apex_ls
+tzp_apex_ls	mri_prostate_regions_3___tzp_apex_ls	tzp_apex_ls
+pzpl_apex_ls	mri_prostate_regions_3___pzpl_apex_ls	pzpl_apex_ls
+pza_apex_ls	mri_prostate_regions_3___pza_apex_ls	pza_apex_ls
+tza_apex_ls	mri_prostate_regions_3___tza_apex_ls	tza_apex_ls
+as_apex_ls	mri_prostate_regions_3___as_apex_ls	as_apex_ls
+as_apex_rs	mri_prostate_regions_3___as_apex_rs	as_apex_rs
+tza_apex_rs	mri_prostate_regions_3___tza_apex_rs	tza_apex_rs
+pza_apex_rs	mri_prostate_regions_3___pza_apex_rs	pza_apex_rs
+urethra	mri_prostate_regions_3___urethra	urethra
+pzpl_mid_rs	mri_prostate_regions_3___pzpl_mid_rs	pzpl_mid_rs
+pzpm_mid_rs	mri_prostate_regions_3___pzpm_mid_rs	pzpm_mid_rs
+pzpm_mid_ls	mri_prostate_regions_3___pzpm_mid_ls	pzpm_mid_ls
+pzpl_mid_ls	mri_prostate_regions_3___pzpl_mid_ls	pzpl_mid_ls
+pza_mid_ls	mri_prostate_regions_3___pza_mid_ls	pza_mid_ls
+as_mid_ls	mri_prostate_regions_3___as_mid_ls	as_mid_ls
+tza_mid_ls	mri_prostate_regions_3___tza_mid_ls	tza_mid_ls
+tzp_mid_ls	mri_prostate_regions_3___tzp_mid_ls	tzp_mid_ls
+as_mid_rs	mri_prostate_regions_3___as_mid_rs	as_mid_rs
+tza_mid_rs	mri_prostate_regions_3___tza_mid_rs	tza_mid_rs
+tzp_mid_rs	mri_prostate_regions_3___tzp_mid_rs	tzp_mid_rs
+pza_mid_rs	mri_prostate_regions_3___pza_mid_rs	pza_mid_rs
+pzpl_base_rs	mri_prostate_regions_3___pzpl_base_rs	pzpl_base_rs
+cz_base_rs	mri_prostate_regions_3___cz_base_rs	cz_base_rs
+cz_base_ls	mri_prostate_regions_3___cz_base_ls	cz_base_ls
+pzpl_base_ls	mri_prostate_regions_3___pzpl_base_ls	pzpl_base_ls
+pza_base_ls	mri_prostate_regions_3___pza_base_ls	pza_base_ls
+as_base_ls	mri_prostate_regions_3___as_base_ls	as_base_ls
+tza_base_ls	mri_prostate_regions_3___tza_base_ls	tza_base_ls
+tzp_base_ls	mri_prostate_regions_3___tzp_base_ls	tzp_base_ls
+tzp_base_rs	mri_prostate_regions_3___tzp_base_rs	tzp_base_rs
+tza_base_rs	mri_prostate_regions_3___tza_base_rs	tza_base_rs
+as_base_rs	mri_prostate_regions_3___as_base_rs	as_base_rs
+pza_base_rs	mri_prostate_regions_3___pza_base_rs	pza_base_rs
+pzpm_base_ls	mri_prostate_regions_3___pzpm_base_ls	pzpm_base_ls
+pzpm_base_rs	mri_prostate_regions_3___pzpm_base_rs	pzpm_base_rs
+sv_base_rs	mri_prostate_regions_3___sv_base_rs	sv_base_rs
+sv_base_ls	mri_prostate_regions_3___sv_base_ls	sv_base_ls
+
+Field Annotation: @HIDDEN
+127	[mri_prostate_imagemap_3]
+Show the field ONLY if:
+[oth_lesion_done_2] = '1'
+	LESION NO.3     RIGHT SIDE  LEFT SIDE * PI-RADS score:       {pirads_3}       Enter the x-dimension of lesion only if PI-RADS score is 3 or higher.  {lesion_x_mm_mr_3_lbl} Y-dimension of the lesion [mm]: Z-dimension of the lesion [mm]: ADC {lesion_x_mm_mr_3} {lesion_y_mm_mr_3} {lesion_z_mm_mr_3} {adc_3} Length of contact with capsule [mm]: Extracapsular extension: Capsule bulging:   {lenght_capsula_3} {extracaps_ext_mr_3} {caps_bulging_3}   Comment on lesion:       {com_les_3} * Was another lesion detected by MRI? {oth_lesion_done_3}	descriptive
+Field Annotation: @CUSTOM_IMAGEMAP=registerImageMap("prostateimage3", "prostatemap3", "mri_prostate_regions_3", "rgba(255, 0, 0, 0.6)", "data-key");
+128	[pirads_3]	PI-RADS score	dropdown, Required
+1	1
+2	2
+3	3
+4	4
+5	5
+
+129	[lesion_x_mm_mr_3_lbl]
+Show the field ONLY if:
+[pirads_3] = '3' or [pirads_3] = '4' or [pirads_3] = '5'
+	* X-dimension of the lesion [mm]:	descriptive
+130	[lesion_x_mm_mr_3]
+Show the field ONLY if:
+[pirads_3] = '3' or [pirads_3] = '4' or [pirads_3] = '5'
+	X-dimension of the lesion	text (number, Min: 0, Max: 100), Required
+Field Annotation: @PLACEHOLDER = "mm"
+131	[lesion_y_mm_mr_3]	Y-dimension of the lesion	text (number, Min: 0, Max: 100)
+Field Annotation: @PLACEHOLDER = "mm"
+132	[lesion_z_mm_mr_3]	Z-dimension of the lesion	text (number, Min: 0, Max: 100)
+Field Annotation: @PLACEHOLDER = "mm"
+133	[adc_3]	ADC
+Apparent diffusion coefficient
+	text (number, Min: 0, Max: 2000)
+Field Annotation: @PLACEHOLDER = "Apparent diffusion coefficient"
+134	[lenght_capsula_3]	Length of contact with capsule (mm)	text (number, Min: 0, Max: 100)
+Field Annotation: @PLACEHOLDER = "mm"
+135	[extracaps_ext_mr_3]	Extracapsular extension	radio
+1	Yes
+2	Suspicious
+3	No
+
+Field Annotation: @IF([oth_lesion_done_2]='1', @DEFAULT='3', '')
+136	[caps_bulging_3]	Capsule bulging	yesno
+1	Yes
+0	No
+
+Field Annotation: @IF([oth_lesion_done_2]='1', @DEFAULT='0', '')
+137	[com_les_3]	Comment on lesion	text
+138	[oth_lesion_done_3]	Was another lesion detected by MRI?_1	yesno, Required
+1	Yes
+0	No
+
+139	[mri_prostate_regions_4]	Prostate regions	checkbox
+pzpl_apex_rs	mri_prostate_regions_4___pzpl_apex_rs	pzpl_apex_rs
+pzpm_apex_rs	mri_prostate_regions_4___pzpm_apex_rs	pzpm_apex_rs
+tzp_apex_rs	mri_prostate_regions_4___tzp_apex_rs	tzp_apex_rs
+pzpm_apex_ls	mri_prostate_regions_4___pzpm_apex_ls	pzpm_apex_ls
+tzp_apex_ls	mri_prostate_regions_4___tzp_apex_ls	tzp_apex_ls
+pzpl_apex_ls	mri_prostate_regions_4___pzpl_apex_ls	pzpl_apex_ls
+pza_apex_ls	mri_prostate_regions_4___pza_apex_ls	pza_apex_ls
+tza_apex_ls	mri_prostate_regions_4___tza_apex_ls	tza_apex_ls
+as_apex_ls	mri_prostate_regions_4___as_apex_ls	as_apex_ls
+as_apex_rs	mri_prostate_regions_4___as_apex_rs	as_apex_rs
+tza_apex_rs	mri_prostate_regions_4___tza_apex_rs	tza_apex_rs
+pza_apex_rs	mri_prostate_regions_4___pza_apex_rs	pza_apex_rs
+urethra	mri_prostate_regions_4___urethra	urethra
+pzpl_mid_rs	mri_prostate_regions_4___pzpl_mid_rs	pzpl_mid_rs
+pzpm_mid_rs	mri_prostate_regions_4___pzpm_mid_rs	pzpm_mid_rs
+pzpm_mid_ls	mri_prostate_regions_4___pzpm_mid_ls	pzpm_mid_ls
+pzpl_mid_ls	mri_prostate_regions_4___pzpl_mid_ls	pzpl_mid_ls
+pza_mid_ls	mri_prostate_regions_4___pza_mid_ls	pza_mid_ls
+as_mid_ls	mri_prostate_regions_4___as_mid_ls	as_mid_ls
+tza_mid_ls	mri_prostate_regions_4___tza_mid_ls	tza_mid_ls
+tzp_mid_ls	mri_prostate_regions_4___tzp_mid_ls	tzp_mid_ls
+as_mid_rs	mri_prostate_regions_4___as_mid_rs	as_mid_rs
+tza_mid_rs	mri_prostate_regions_4___tza_mid_rs	tza_mid_rs
+tzp_mid_rs	mri_prostate_regions_4___tzp_mid_rs	tzp_mid_rs
+pza_mid_rs	mri_prostate_regions_4___pza_mid_rs	pza_mid_rs
+pzpl_base_rs	mri_prostate_regions_4___pzpl_base_rs	pzpl_base_rs
+cz_base_rs	mri_prostate_regions_4___cz_base_rs	cz_base_rs
+cz_base_ls	mri_prostate_regions_4___cz_base_ls	cz_base_ls
+pzpl_base_ls	mri_prostate_regions_4___pzpl_base_ls	pzpl_base_ls
+pza_base_ls	mri_prostate_regions_4___pza_base_ls	pza_base_ls
+as_base_ls	mri_prostate_regions_4___as_base_ls	as_base_ls
+tza_base_ls	mri_prostate_regions_4___tza_base_ls	tza_base_ls
+tzp_base_ls	mri_prostate_regions_4___tzp_base_ls	tzp_base_ls
+tzp_base_rs	mri_prostate_regions_4___tzp_base_rs	tzp_base_rs
+tza_base_rs	mri_prostate_regions_4___tza_base_rs	tza_base_rs
+as_base_rs	mri_prostate_regions_4___as_base_rs	as_base_rs
+pza_base_rs	mri_prostate_regions_4___pza_base_rs	pza_base_rs
+pzpm_base_ls	mri_prostate_regions_4___pzpm_base_ls	pzpm_base_ls
+pzpm_base_rs	mri_prostate_regions_4___pzpm_base_rs	pzpm_base_rs
+sv_base_rs	mri_prostate_regions_4___sv_base_rs	sv_base_rs
+sv_base_ls	mri_prostate_regions_4___sv_base_ls	sv_base_ls
+
+Field Annotation: @HIDDEN
+140	[mri_prostate_imagemap_4]
+Show the field ONLY if:
+[oth_lesion_done_3] = '1'
+	LESION NO.4     RIGHT SIDE  LEFT SIDE * PI-RADS score:       {pirads_4}       Enter the x-dimension of lesion only if PI-RADS score is 3 or higher.  {lesion_x_mm_mr_4_lbl} Y-dimension of the lesion [mm]: Z-dimension of the lesion [mm]: ADC {lesion_x_mm_mr_4} {lesion_y_mm_mr_4} {lesion_z_mm_mr_4} {adc_4} Length of contact with capsule [mm]: Extracapsular extension: Capsule bulging:   {lenght_capsula_4} {extracaps_ext_mr_4} {caps_bulging_4}   Comment on lesion:       {com_les_4}	descriptive
+Field Annotation: @CUSTOM_IMAGEMAP=registerImageMap("prostateimage4", "prostatemap4", "mri_prostate_regions_4", "rgba(255, 0, 0, 0.6)", "data-key");
+141	[pirads_4]	PI-RADS score	dropdown, Required
+1	1
+2	2
+3	3
+4	4
+5	5
+
+142	[lesion_x_mm_mr_4_lbl]
+Show the field ONLY if:
+[pirads_4] = '3' or [pirads_4] = '4' or [pirads_4] = '5'
+	* X-dimension of the lesion [mm]:	descriptive
+143	[lesion_x_mm_mr_4]
+Show the field ONLY if:
+[pirads_4] = '3' or [pirads_4] = '4' or [pirads_4] = '5'
+	X-dimension of the lesion	text (number, Min: 0, Max: 100), Required
+Field Annotation: @PLACEHOLDER = "mm"
+144	[lesion_y_mm_mr_4]	Y-dimension of the lesion	text (number, Min: 0, Max: 100)
+Field Annotation: @PLACEHOLDER = "mm"
+145	[adc_4]	ADC
+Apparent diffusion coefficient
+	text (number, Min: 0, Max: 2000)
+Field Annotation: @PLACEHOLDER = "Apparent diffusion coefficient"
+146	[lesion_z_mm_mr_4]	Z-dimension of the lesion	text (number, Min: 0, Max: 100)
+Field Annotation: @PLACEHOLDER = "mm"
+147	[lenght_capsula_4]	Length of contact with capsule (mm)	text (number, Min: 0, Max: 100)
+Field Annotation: @PLACEHOLDER = "mm"
+148	[extracaps_ext_mr_4]	Extracapsular extension	radio
+1	Yes
+2	Suspicious
+3	No
+
+Field Annotation: @IF([oth_lesion_done_3]='1', @DEFAULT='3', '')
+149	[caps_bulging_4]	Capsule bulging	yesno
+1	Yes
+0	No
+
+Field Annotation: @IF([oth_lesion_done_3]='1', @DEFAULT='0', '')
+150	[com_les_4]	Comment on lesion	text
+151	[pirads_tot]	TOTAL PI-RADS SCORE Total PI-RADS score: {total_pirads}	descriptive
+152	[total_pirads]	Total PI-RADS score	calc
+Calculation: max([pirads_1], [pirads_2], [pirads_3], [pirads_4])
+153	[node_detected_mri]	cTNM CLASSIFICATION (ACCORDING TO THE MRI) Any N-lymph node detected?	yesno
+1	Yes
+0	No
+
+Custom alignment: LV
+154	[n_node]
+Show the field ONLY if:
+[node_detected_mri] = '1'
+	N-lymph node * X-dimension (mm) N (node): Y-dimension (mm) N (node): * Localization N (node):   {node_x_mm_1} {node_y_mm_1} {node_location_1} {node_next_1} {node_x_mm_2} {node_y_mm_2} {node_location_2} {node_next_2} {node_x_mm_3} {node_y_mm_3} {node_location_3} {node_next_3} {node_x_mm_4} {node_y_mm_4} {node_location_4} {node_next_4} {node_x_mm_5} {node_y_mm_5} {node_location_5}  	descriptive
+155	[node_x_mm_1]	X-dimension (mm) N (node)	text (number, Min: 0, Max: 200), Required
+Field Annotation: @PLACEHOLDER='x-dimension [mm]'
+156	[node_x_mm_2]
+Show the field ONLY if:
+[node_next_1(1)]='1'
+	X-dimension (mm) N (node)	text (number, Min: 0, Max: 200), Required
+Field Annotation: @PLACEHOLDER='x-dimension [mm]'
+157	[node_x_mm_3]
+Show the field ONLY if:
+[node_next_2(1)]='1'
+	X-dimension (mm) N (node)	text (number, Min: 0, Max: 200), Required
+Field Annotation: @PLACEHOLDER='x-dimension [mm]'
+158	[node_x_mm_4]
+Show the field ONLY if:
+[node_next_3(1)]='1'
+	X-dimension (mm) N (node)	text (number, Min: 0, Max: 200), Required
+Field Annotation: @PLACEHOLDER='x-dimension [mm]'
+159	[node_x_mm_5]
+Show the field ONLY if:
+[node_next_4(1)]='1'
+	X-dimension (mm) N (node)	text (number, Min: 0, Max: 200), Required
+Field Annotation: @PLACEHOLDER='x-dimension [mm]'
+160	[node_y_mm_1]	Y-dimension (mm) N (node)	text (number, Min: 0, Max: 200)
+Field Annotation: @PLACEHOLDER='y-dimension [mm]'
+161	[node_y_mm_2]
+Show the field ONLY if:
+[node_next_1(1)]='1'
+	Y-dimension (mm) N (node)	text (number, Min: 0, Max: 200)
+Field Annotation: @PLACEHOLDER='y-dimension [mm]'
+162	[node_y_mm_3]
+Show the field ONLY if:
+[node_next_2(1)]='1'
+	Y-dimension (mm) N (node)	text (number, Min: 0, Max: 200)
+Field Annotation: @PLACEHOLDER='y-dimension [mm]'
+163	[node_y_mm_4]
+Show the field ONLY if:
+[node_next_3(1)]='1'
+	Y-dimension (mm) N (node)	text (number, Min: 0, Max: 200)
+Field Annotation: @PLACEHOLDER='y-dimension [mm]'
+164	[node_y_mm_5]
+Show the field ONLY if:
+[node_next_4(1)]='1'
+	Y-dimension (mm) N (node)	text (number, Min: 0, Max: 200)
+Field Annotation: @PLACEHOLDER='y-dimension [mm]'
+165	[node_location_1]	Localization node	dropdown, Required
+1	External iliac
+2	Internal iliac
+3	Presacral
+4	Obturator
+5	Pelvic regional
+
+166	[node_location_2]
+Show the field ONLY if:
+[node_next_1(1)]='1'
+	Localization node	dropdown, Required
+1	External iliac
+2	Internal iliac
+3	Presacral
+4	Obturator
+5	Pelvic regional
+
+167	[node_location_3]
+Show the field ONLY if:
+[node_next_2(1)]='1'
+	Localization node	dropdown, Required
+1	External iliac
+2	Internal iliac
+3	Presacral
+4	Obturator
+5	Pelvic regional
+
+168	[node_location_4]
+Show the field ONLY if:
+[node_next_3(1)]='1'
+	Localization node	dropdown, Required
+1	External iliac
+2	Internal iliac
+3	Presacral
+4	Obturator
+5	Pelvic regional
+
+169	[node_location_5]
+Show the field ONLY if:
+[node_next_4(1)]='1'
+	Localization node	dropdown, Required
+1	External iliac
+2	Internal iliac
+3	Presacral
+4	Obturator
+5	Pelvic regional
+
+170	[node_next_1]	Next lesion	checkbox
+1	node_next_1___1	Add lesion
+
+171	[node_next_2]
+Show the field ONLY if:
+[node_next_1(1)]='1'
+	Next lesion	checkbox
+1	node_next_2___1	Add lesion
+
+172	[node_next_3]
+Show the field ONLY if:
+[node_next_2(1)]='1'
+	Next lesion	checkbox
+1	node_next_3___1	Add lesion
+
+173	[node_next_4]
+Show the field ONLY if:
+[node_next_3(1)]='1'
+	Next lesion	checkbox
+1	node_next_4___1	Add lesion
+
+174	[mts_node_detected_mri]	Any M-lymph node detected?	yesno
+1	Yes
+0	No
+
+Custom alignment: LV
+175	[mts_node]
+Show the field ONLY if:
+[mts_node_detected_mri] = '1'
+	M-lymph node * X-dimension (mm) M (node): Y-dimension (mm) M (node): * Localization M (node):   {mts_node_x_mm_1} {mts_node_y_mm_1} {mts_node_location_1} {mts_node_next_1} {mts_node_x_mm_2} {mts_node_y_mm_2} {mts_node_location_2} {mts_node_next_2} {mts_node_x_mm_3} {mts_node_y_mm_3} {mts_node_location_3} {mts_node_next_3} {mts_node_x_mm_4} {mts_node_y_mm_4} {mts_node_location_4} {mts_node_next_4} {mts_node_x_mm_5} {mts_node_y_mm_5} {mts_node_location_5}  	descriptive
+176	[mts_node_x_mm_1]	X-dimension (mm) M (node)	text (number, Min: 0, Max: 200), Required
+Field Annotation: @PLACEHOLDER='x-dimension [mm]'
+177	[mts_node_x_mm_2]
+Show the field ONLY if:
+[mts_node_next_1(1)] = '1'
+	X-dimension (mm) M (node)	text (number, Min: 0, Max: 200), Required
+Field Annotation: @PLACEHOLDER='x-dimension [mm]'
+178	[mts_node_x_mm_3]
+Show the field ONLY if:
+[mts_node_next_2(1)] = '1'
+	X-dimension (mm) M (node)	text (number, Min: 0, Max: 200), Required
+Field Annotation: @PLACEHOLDER='x-dimension [mm]'
+179	[mts_node_x_mm_4]
+Show the field ONLY if:
+[mts_node_next_3(1)] = '1'
+	X-dimension (mm) M (node)	text (number, Min: 0, Max: 200), Required
+Field Annotation: @PLACEHOLDER='x-dimension [mm]'
+180	[mts_node_x_mm_5]
+Show the field ONLY if:
+[mts_node_next_4(1)] = '1'
+	X-dimension (mm) M (node)	text (number, Min: 0, Max: 200), Required
+Field Annotation: @PLACEHOLDER='x-dimension [mm]'
+181	[mts_node_y_mm_1]	Y-dimension (mm) M (node)	text (number, Min: 0, Max: 200)
+Field Annotation: @PLACEHOLDER='y-dimension [mm]'
+182	[mts_node_y_mm_2]
+Show the field ONLY if:
+[mts_node_next_1(1)] = '1'
+	Y-dimension (mm) M (node)	text (number, Min: 0, Max: 200)
+Field Annotation: @PLACEHOLDER='y-dimension [mm]'
+183	[mts_node_y_mm_3]
+Show the field ONLY if:
+[mts_node_next_2(1)] = '1'
+	Y-dimension (mm) M (node)	text (number, Min: 0, Max: 200)
+Field Annotation: @PLACEHOLDER='y-dimension [mm]'
+184	[mts_node_y_mm_4]
+Show the field ONLY if:
+[mts_node_next_3(1)] = '1'
+	Y-dimension (mm) M (node)	text (number, Min: 0, Max: 200)
+Field Annotation: @PLACEHOLDER='y-dimension [mm]'
+185	[mts_node_y_mm_5]
+Show the field ONLY if:
+[mts_node_next_4(1)] = '1'
+	Y-dimension (mm) M (node)	text (number, Min: 0, Max: 200)
+Field Annotation: @PLACEHOLDER='y-dimension [mm]'
+186	[mts_node_location_1]	Location M (node)	dropdown, Required
+1	Retroperitoneal
+2	Paraaortal
+3	Common iliac
+4	Inguinal
+5	Other distant lymph nodes
+
+187	[mts_node_location_2]
+Show the field ONLY if:
+[mts_node_next_1(1)] = '1'
+	Location M (node)	dropdown, Required
+1	Retroperitoneal
+2	Paraaortal
+3	Common iliac
+4	Inguinal
+5	Other distant lymph nodes
+
+188	[mts_node_location_3]
+Show the field ONLY if:
+[mts_node_next_2(1)] = '1'
+	Location M (node)	dropdown, Required
+1	Retroperitoneal
+2	Paraaortal
+3	Common iliac
+4	Inguinal
+5	Other distant lymph nodes
+
+189	[mts_node_location_4]
+Show the field ONLY if:
+[mts_node_next_3(1)] = '1'
+	Location M (node)	dropdown, Required
+1	Retroperitoneal
+2	Paraaortal
+3	Common iliac
+4	Inguinal
+5	Other distant lymph nodes
+
+190	[mts_node_location_5]
+Show the field ONLY if:
+[mts_node_next_4(1)] = '1'
+	Location M (node)	dropdown, Required
+1	Retroperitoneal
+2	Paraaortal
+3	Common iliac
+4	Inguinal
+5	Other distant lymph nodes
+
+191	[mts_node_next_1]	Next lesion	checkbox
+1	mts_node_next_1___1	Add lesion
+
+192	[mts_node_next_2]
+Show the field ONLY if:
+[mts_node_next_1(1)] = '1'
+	Next lesion	checkbox
+1	mts_node_next_2___1	Add lesion
+
+193	[mts_node_next_3]
+Show the field ONLY if:
+[mts_node_next_2(1)] = '1'
+	Next lesion	checkbox
+1	mts_node_next_3___1	Add lesion
+
+194	[mts_node_next_4]
+Show the field ONLY if:
+[mts_node_next_3(1)] = '1'
+	Next lesion	checkbox
+1	mts_node_next_4___1	Add lesion
+
+195	[mts_bone_detected_mri]	Any M-bone lesion detected?	yesno
+1	Yes
+0	No
+
+Custom alignment: LV
+196	[mts_bone]
+Show the field ONLY if:
+[mts_bone_detected_mri] = '1'
+	M-bone lesion * X-dimension (mm) M (bone): Y-dimension (mm) M (bone): * Localization M (bone):   {mts_bone_x_mm_1} {mts_bone_y_mm_1} {mts_bone_location_1} {mts_bone_next_1} {mts_bone_x_mm_2} {mts_bone_y_mm_2} {mts_bone_location_2} {mts_bone_next_2} {mts_bone_x_mm_3} {mts_bone_y_mm_3} {mts_bone_location_3} {mts_bone_next_3} {mts_bone_x_mm_4} {mts_bone_y_mm_4} {mts_bone_location_4} {mts_bone_next_4} {mts_bone_x_mm_5} {mts_bone_y_mm_5} {mts_bone_location_5}  	descriptive
+197	[mts_bone_x_mm_1]	X-dimension (mm) M (bone)	text (number, Min: 0, Max: 200), Required
+Field Annotation: @PLACEHOLDER='x-dimension [mm]'
+198	[mts_bone_x_mm_2]
+Show the field ONLY if:
+[mts_bone_next_1(1)] = '1'
+	X-dimension (mm) M (bone)	text (number, Min: 0, Max: 200), Required
+Field Annotation: @PLACEHOLDER='x-dimension [mm]'
+199	[mts_bone_x_mm_3]
+Show the field ONLY if:
+[mts_bone_next_2(1)] = '1'
+	X-dimension (mm) M (bone)	text (number, Min: 0, Max: 200), Required
+Field Annotation: @PLACEHOLDER='x-dimension [mm]'
+200	[mts_bone_x_mm_4]
+Show the field ONLY if:
+[mts_bone_next_3(1)] = '1'
+	X-dimension (mm) M (bone)	text (number, Min: 0, Max: 200), Required
+Field Annotation: @PLACEHOLDER='x-dimension [mm]'
+201	[mts_bone_x_mm_5]
+Show the field ONLY if:
+[mts_bone_next_4(1)] = '1'
+	X-dimension (mm) M (bone)	text (number, Min: 0, Max: 200), Required
+Field Annotation: @PLACEHOLDER='x-dimension [mm]'
+202	[mts_bone_y_mm_1]	Y-dimension (mm) M (bone)	text (number, Min: 0, Max: 200)
+Field Annotation: @PLACEHOLDER='y-dimension [mm]'
+203	[mts_bone_y_mm_2]
+Show the field ONLY if:
+[mts_bone_next_1(1)] = '1'
+	Y-dimension (mm) M (bone)	text (number, Min: 0, Max: 200)
+Field Annotation: @PLACEHOLDER='y-dimension [mm]'
+204	[mts_bone_y_mm_3]
+Show the field ONLY if:
+[mts_bone_next_2(1)] = '1'
+	Y-dimension (mm) M (bone)	text (number, Min: 0, Max: 200)
+Field Annotation: @PLACEHOLDER='y-dimension [mm]'
+205	[mts_bone_y_mm_4]
+Show the field ONLY if:
+[mts_bone_next_3(1)] = '1'
+	Y-dimension (mm) M (bone)	text (number, Min: 0, Max: 200)
+Field Annotation: @PLACEHOLDER='y-dimension [mm]'
+206	[mts_bone_y_mm_5]
+Show the field ONLY if:
+[mts_bone_next_4(1)] = '1'
+	Y-dimension (mm) M (bone)	text (number, Min: 0, Max: 200)
+Field Annotation: @PLACEHOLDER='y-dimension [mm]'
+207	[mts_bone_location_1]	Location M (bone)	dropdown, Required
+1	Femoral
+2	Sciatic
+3	Pubic
+4	Sacrum
+5	Femur
+6	Vertebra
+
+208	[mts_bone_location_2]
+Show the field ONLY if:
+[mts_bone_next_1(1)] = '1'
+	Location M (bone)	dropdown, Required
+1	Femoral
+2	Sciatic
+3	Pubic
+4	Sacrum
+5	Femur
+6	Vertebra
+
+209	[mts_bone_location_3]
+Show the field ONLY if:
+[mts_bone_next_2(1)] = '1'
+	Location M (bone)	dropdown, Required
+1	Femoral
+2	Sciatic
+3	Pubic
+4	Sacrum
+5	Femur
+6	Vertebra
+
+210	[mts_bone_location_4]
+Show the field ONLY if:
+[mts_bone_next_3(1)] = '1'
+	Location M (bone)	dropdown, Required
+1	Femoral
+2	Sciatic
+3	Pubic
+4	Sacrum
+5	Femur
+6	Vertebra
+
+211	[mts_bone_location_5]
+Show the field ONLY if:
+[mts_bone_next_4(1)] = '1'
+	Location M (bone)	dropdown, Required
+1	Femoral
+2	Sciatic
+3	Pubic
+4	Sacrum
+5	Femur
+6	Vertebra
+
+212	[mts_bone_next_1]	Next lesion	checkbox
+1	mts_bone_next_1___1	Add lesion
+
+213	[mts_bone_next_2]
+Show the field ONLY if:
+[mts_bone_next_1(1)] = '1'
+	Next lesion	checkbox
+1	mts_bone_next_2___1	Add lesion
+
+214	[mts_bone_next_3]
+Show the field ONLY if:
+[mts_bone_next_2(1)] = '1'
+	Next lesion	checkbox
+1	mts_bone_next_3___1	Add lesion
+
+215	[mts_bone_next_4]
+Show the field ONLY if:
+[mts_bone_next_3(1)] = '1'
+	Next lesion	checkbox
+1	mts_bone_next_4___1	Add lesion
+
+216	[mts_other_detect_mri]	Any M-other metastases detected?	yesno
+1	Yes
+0	No
+
+Custom alignment: LV
+217	[mts_other]
+Show the field ONLY if:
+[mts_other_detect_mri] = '1'
+	M-other metastases * X-dimension (mm) M (other): Y-dimension (mm) M (other): * Localization M (other):   {mts_other_x_mm_1} {mts_other_y_mm_1} {mts_other_location_1} {mts_other_next_1} {mts_other_x_mm_2} {mts_other_y_mm_2} {mts_other_location_2} {mts_other_next_2} {mts_other_x_mm_3} {mts_other_y_mm_3} {mts_other_location_3} {mts_other_next_3} {mts_other_x_mm_4} {mts_other_y_mm_4} {mts_other_location_4} {mts_other_next_4} {mts_other_x_mm_5} {mts_other_y_mm_5} {mts_other_location_5}  	descriptive
+218	[mts_other_x_mm_1]	X-dimension (mm) M (other)	text (number, Min: 0, Max: 200), Required
+Field Annotation: @PLACEHOLDER='x-dimension [mm]'
+219	[mts_other_x_mm_2]
+Show the field ONLY if:
+[mts_other_next_1(1)] = '1'
+	X-dimension (mm) M (other)	text (number, Min: 0, Max: 200), Required
+Field Annotation: @PLACEHOLDER='x-dimension [mm]'
+220	[mts_other_x_mm_3]
+Show the field ONLY if:
+[mts_other_next_2(1)] = '1'
+	X-dimension (mm) M (other)	text (number, Min: 0, Max: 200), Required
+Field Annotation: @PLACEHOLDER='x-dimension [mm]'
+221	[mts_other_x_mm_4]
+Show the field ONLY if:
+[mts_other_next_3(1)] = '1'
+	X-dimension (mm) M (other)	text (number, Min: 0, Max: 200), Required
+Field Annotation: @PLACEHOLDER='x-dimension [mm]'
+222	[mts_other_x_mm_5]
+Show the field ONLY if:
+[mts_other_next_4(1)] = '1'
+	X-dimension (mm) M (other)	text (number, Min: 0, Max: 200), Required
+Field Annotation: @PLACEHOLDER='x-dimension [mm]'
+223	[mts_other_y_mm_1]	Y-dimension (mm) M (other)	text (number, Min: 0, Max: 200)
+Field Annotation: @PLACEHOLDER='y-dimension [mm]'
+224	[mts_other_y_mm_2]
+Show the field ONLY if:
+[mts_other_next_1(1)] = '1'
+	Y-dimension (mm) M (other)	text (number, Min: 0, Max: 200)
+Field Annotation: @PLACEHOLDER='y-dimension [mm]'
+225	[mts_other_y_mm_3]
+Show the field ONLY if:
+[mts_other_next_2(1)] = '1'
+	Y-dimension (mm) M (other)	text (number, Min: 0, Max: 200)
+Field Annotation: @PLACEHOLDER='y-dimension [mm]'
+226	[mts_other_y_mm_4]
+Show the field ONLY if:
+[mts_other_next_3(1)] = '1'
+	Y-dimension (mm) M (other)	text (number, Min: 0, Max: 200)
+Field Annotation: @PLACEHOLDER='y-dimension [mm]'
+227	[mts_other_y_mm_5]
+Show the field ONLY if:
+[mts_other_next_4(1)] = '1'
+	Y-dimension (mm) M (other)	text (number, Min: 0, Max: 200)
+Field Annotation: @PLACEHOLDER='y-dimension [mm]'
+228	[mts_other_location_1]	Location M (other)	dropdown, Required
+1	Soft tissue
+2	Peritoneum
+3	Penis
+4	Urinary bladder
+5	Jejunum
+6	Colon
+7	Rectum
+
+229	[mts_other_location_2]
+Show the field ONLY if:
+[mts_other_next_1(1)] = '1'
+	Location M (other)	dropdown, Required
+1	Soft tissue
+2	Peritoneum
+3	Penis
+4	Urinary bladder
+5	Jejunum
+6	Colon
+7	Rectum
+
+230	[mts_other_location_3]
+Show the field ONLY if:
+[mts_other_next_2(1)] = '1'
+	Location M (other)	dropdown, Required
+1	Soft tissue
+2	Peritoneum
+3	Penis
+4	Urinary bladder
+5	Jejunum
+6	Colon
+7	Rectum
+
+231	[mts_other_location_4]
+Show the field ONLY if:
+[mts_other_next_3(1)] = '1'
+	Location M (other)	dropdown, Required
+1	Soft tissue
+2	Peritoneum
+3	Penis
+4	Urinary bladder
+5	Jejunum
+6	Colon
+7	Rectum
+
+232	[mts_other_location_5]
+Show the field ONLY if:
+[mts_other_next_4(1)] = '1'
+	Location M (other)	dropdown, Required
+1	Soft tissue
+2	Peritoneum
+3	Penis
+4	Urinary bladder
+5	Jejunum
+6	Colon
+7	Rectum
+
+233	[mts_other_next_1]	Next lesion	checkbox
+1	mts_other_next_1___1	Add lesion
+
+234	[mts_other_next_2]
+Show the field ONLY if:
+[mts_other_next_1(1)] = '1'
+	Next lesion	checkbox
+1	mts_other_next_2___1	Add lesion
+
+235	[mts_other_next_3]
+Show the field ONLY if:
+[mts_other_next_2(1)] = '1'
+	Next lesion	checkbox
+1	mts_other_next_3___1	Add lesion
+
+236	[mts_other_next_4]
+Show the field ONLY if:
+[mts_other_next_3(1)] = '1'
+	Next lesion	checkbox
+1	mts_other_next_4___1	Add lesion
+
+237	[tnm]	* cT: * cN: * cM: {ct} {cn} {cm} Help for TNM classification: 	descriptive
+(Attachment: COMPARE_TNM_klasifikace.pdf, Display format: Link)
+Field Annotation: @INLINE-PREVIEW
+238	[ct]	cT	dropdown, Required
+1	T0/T1
+2	T2a
+3	T2b
+4	T2c
+5	T3a
+6	T3b
+7	T4
+8	TX
+
+239	[cn]	cN	dropdown, Required
+1	N0
+2	N1
+3	NX
+
+240	[cm]	cM	dropdown, Required
+1	M0
+2	M1a
+3	M1b
+4	M1c
+5	MX
+
+241	[magnetic_resonance_imaging_complete]	
+Section Header: Form Status
+Complete?	dropdown
+0	Incomplete
+1	Unverified
+2	Complete
+
+ Instrument:Magnetic resonance quality(magnetic_resonance_quality)
+ Collapse
+
+242	[date_prev_mri]	Date of MRI examination:	sql, Required
+243	[mri_protocol_quality]	MRi PROTOCOL QUALITY * Start time 1st sequence (DICOM Tag 0008,0030) (hh:mm:ss): {start_time_mri}       * End time-last sequence (DICOM Tag 0008,0031) (hh:mm:ss): {end_time_mri}       Duration of examination: [dur_mri_part_m]:[dur_mri_part_s] Calculated automatically in the format mm:ss. * Total number of sequences:   {total_seq_num}   Adequate T2-SAG sequence quality?: Adequate T2-COR sequence quality?: Adequate T2-TRA sequence quality?: Adequate DWI sequence quality?: {t2_sag_qual} {t2_cor_qual} {t2_tra_qual} {dwi_qual} If the quality of the sequence is not sufficient, please indicate below the type of repeated sequence and the quality. Adequate DCE sequence quality?: Repeated sequence: Adequate repeated sequence quality?: {dce_qual} {seq_type_1} {seq_quality_1}   {seq_type_2} {seq_quality_2}   {seq_type_3} {seq_quality_3}   {seq_type_4} {seq_quality_4}   {seq_type_5} {seq_quality_5} Deviations from the MRI protocol: {deviation_mri_protocol}	descriptive
+244	[start_time_mri]	Start time1st seq (DICOM Tag 0008,0030) (hh:mm:ss)	text (time_hh_mm_ss), Required
+245	[end_time_mri]	Series time-last sequence (DICOM Tag 0008,0031) (hh:mm:ss)
+Examination end text - end text of the last sequence
+	text (time_hh_mm_ss, Min: [start_time_mri]), Required
+246	[dur_mri_s]	Duration of examination	calc
+Calculation: datediff([start_time_mri], [end_time_mri], 's')
+Field Annotation: @HIDDEN
+247	[dur_mri_part_m]	Duration of examination (min)	text
+Field Annotation: @CALCTEXT(if(length(rounddown([dur_mri_s]/60,0)) = 1, concat("0",rounddown([dur_mri_s]/60,0)), rounddown([dur_mri_s]/60,0))) @HIDDEN
+248	[dur_mri_part_s]	Duration of MRi (s)	text
+Field Annotation: @HIDDEN @CALCTEXT(if(length(mod([dur_mri_s], 60)) = 1, concat("0",mod([dur_mri_s], 60)),mod([dur_mri_s], 60)))
+249	[total_seq_num]	Total number of sequences	text (integer, Min: 0), Required
+250	[t2_sag_qual]	Adequate T2-SAG sequence quality?	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+251	[t2_cor_qual]	Adequate T2-COR sequence quality?	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+252	[t2_tra_qual]	Adequate T2-TRA sequence quality?	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+253	[dwi_qual]	Adequate DWI sequence quality?	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+254	[dce_qual]	Adequate DCE sequence quality?	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+255	[seq_type_1]	Sequence type	dropdown
+1	Sequence DWI
+2	Sequence T2-COR
+3	Sequence T2-SAG
+4	Sequence T2-TRA
+
+256	[seq_type_2]
+Show the field ONLY if:
+isblankormissingcode([seq_type_1]) = '0'
+	Sequence type	dropdown
+1	Sequence DWI
+2	Sequence T2-COR
+3	Sequence T2-SAG
+4	Sequence T2-TRA
+
+257	[seq_type_3]
+Show the field ONLY if:
+isblankormissingcode([seq_type_2]) = '0'
+	Sequence type	dropdown
+1	Sequence DWI
+2	Sequence T2-COR
+3	Sequence T2-SAG
+4	Sequence T2-TRA
+
+258	[seq_type_4]
+Show the field ONLY if:
+isblankormissingcode([seq_type_3]) = '0'
+	Sequence type	dropdown
+1	Sequence DWI
+2	Sequence T2-COR
+3	Sequence T2-SAG
+4	Sequence T2-TRA
+
+259	[seq_type_5]
+Show the field ONLY if:
+isblankormissingcode([seq_type_4]) = '0'
+	Sequence type	dropdown
+1	Sequence DWI
+2	Sequence T2-COR
+3	Sequence T2-SAG
+4	Sequence T2-TRA
+
+260	[seq_quality_1]	Was the quality of the sequence satisfactory?	dropdown
+1	Yes
+2	No
+
+261	[seq_quality_2]
+Show the field ONLY if:
+isblankormissingcode([seq_type_1]) = '0'
+	Was the quality of the sequence satisfactory?	dropdown
+1	Yes
+2	No
+
+262	[seq_quality_3]
+Show the field ONLY if:
+isblankormissingcode([seq_type_2]) = '0'
+	Was the quality of the sequence satisfactory?	dropdown
+1	Yes
+2	No
+
+263	[seq_quality_4]
+Show the field ONLY if:
+isblankormissingcode([seq_type_3]) = '0'
+	Was the quality of the sequence satisfactory?	dropdown
+1	Yes
+2	No
+
+264	[seq_quality_5]
+Show the field ONLY if:
+isblankormissingcode([seq_type_4]) = '0'
+	Was the quality of the sequence satisfactory?	dropdown
+1	Yes
+2	No
+
+265	[deviation_mri_protocol]	Deviations from the MRi protocol (reported from the MAFIL)	notes
+266	[t2_wi]	PI-QUAL - TECHNICAL PARAMETERS OF DWI, T2, DCE  T2 - WI Technical parameters: Axial plane: Sagittal or coronal plane: Adequate field of view/in-plane resolution: Adequate slice thickness: Z-axis correctly positioned: {axial_plane_t2} {sag_cor_plane_t2} {fov_resolution_t2} {slice_thickness_t2} {z_position_t2} Visual assessment: Capsule clearly delineated: Seminal vesicles and ejaculatory ducts clearly delineated: Neurovascular bundles clearly delineated: Sphincter muscle clearly delineated: Absence of artefacts (eg. movement): {caps_delineate_t2} {sem_ves_ej_duct_delin_t2} {neuro_delineate_t2} {sphincter_delineate_t2} {artefacts_t2}   Is T2-WI of diagnostic quality (all YES)?:       {t2_fin_qual}      	descriptive
+267	[axial_plane_t2]	Axial plane	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+268	[sag_cor_plane_t2]	Sagittal or coronal plane	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+269	[fov_resolution_t2]	Adequate field of view/in-plane resolution	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+270	[slice_thickness_t2]	Adequate slice thickness	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+271	[z_position_t2]	Z-axis correctly positioned	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+272	[caps_delineate_t2]	Capsule clearly delineated	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+273	[sem_ves_ej_duct_delin_t2]	Seminal vesicles and ejaculatory ducts clearly delineated	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+274	[neuro_delineate_t2]	Neurovascular bundles clearly delineated	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+275	[sphincter_delineate_t2]	Sphincter muscle clearly delineated	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+276	[artefacts_t2]	Absence of artefacts (eg. movement)	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+277	[t2_fin_qual_calc]	Is T2-WI of diagnostic quality (all YES)?	calc
+Calculation: ([axial_plane_t2] = '1') + ([sag_cor_plane_t2] = '1') + ([fov_resolution_t2] = '1') + ([slice_thickness_t2] = '1') + ([z_position_t2] = '1') + ([caps_delineate_t2] = '1') + ([sem_ves_ej_duct_delin_t2] = '1') + ([neuro_delineate_t2] = '1') + ([sphincter_delineate_t2] = '1') + ([artefacts_t2] = '1')
+Field Annotation: @HIDDEN
+278	[t2_fin_qual]	Is T2-WI of diagnostic quality (all YES)?	text
+Field Annotation: @CALCTEXT(if([t2_fin_qual_calc] = 10, 'Yes', 'No'))
+279	[dwi]	DWI Technical parameters: Axial plane matching T2-WI: Adequate field of view/in-plane resolution (DWI): Adequate slice thickness matching T2-WI: Calculated b= 1400 (minimum 2 b acquired): {axial_plane_match_dwi} {fov_resolution_dwi} {slice_thickness_dwi} {calc_b_multiple_dwi}   Visual assesment: Adequate ADC map: Absence of artefacts (eg. rectal air):       {adc_map_dwi} {artefacts_dwi}         Is DWI of diagnostic quality (all YES)?:       {dwi_fin_qual}      	descriptive
+280	[axial_plane_match_dwi]	Axial plane matching T2-WI	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+281	[fov_resolution_dwi]	Adequate field of view/in-plane resolution_dwi	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+282	[slice_thickness_dwi]	Adequate slice thickness matching T2-WI	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+283	[calc_b_multiple_dwi]	Calculated b= 1400 (minimum 2 b acquired)	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+284	[adc_map_dwi]	Adequate ADC map	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+285	[artefacts_dwi]	Absence of artefacts (eg. rectal air)	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+286	[dwi_fin_qual_calc]	Is DWI of diagnostic quality (all YES)?	calc
+Calculation: ([axial_plane_match_dwi] = '1') + ([fov_resolution_dwi] = '1') + ([slice_thickness_dwi] = '1') + ([calc_b_multiple_dwi] = '1') + ([adc_map_dwi] = '1') + ([artefacts_dwi] = '1')
+Field Annotation: @HIDDEN
+287	[dwi_fin_qual]	Is DWI of diagnostic quality (all YES)?	text
+Field Annotation: @CALCTEXT(if([dwi_fin_qual_calc] = 6, 'Yes', 'No'))
+288	[dce]	DCE Technical parameters: Axial plane matching T2-WI (DCE): Adequate field of view/in-plane resolution (DCE): Adequate slice thickness (DCE): Pre-contrast T1-WI available: Fat suppression/subtraction: {axial_plane_match_dce} {fov_resolution_dce} {slice_thickness_dce} {precontrast_t1_dce} {fat_supress_dce} Adequate temporal resolution (< =10 sec): Adequate total observation rate (>= 2 min):       {temp_resolution_dce} {total_observe_rate_dce}       Visual parameters: Capsular vessels clearly delineated: Vessels (Alcock canal) clearly delineated: Absence of artefacts (eg. movement) DCE:     {caps_ves_delineate_dce} {alcock_ves_delineate_dce} {artefacts_dce}       Is DCE of diagnostic quality (all YES)?:       {dce_fin_qual}       Are at least two sequences adequate when evaluated together?: {two_seq_adeqv_piqual}         PI-QUAL:         {piqual_mri}        	descriptive
+289	[axial_plane_match_dce]	Axial plane matching T2-WI (DCE)	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+290	[fov_resolution_dce]	Adequate field of view/in-plane resolution (DCE)	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+291	[slice_thickness_dce]	Adequate slice thickness (DCE)	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+292	[precontrast_t1_dce]	Pre-contrast T1-WI available	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+293	[fat_supress_dce]	Fat suppression/subtraction	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+294	[total_observe_rate_dce]	Adequate total observation rate (>= 2 min)	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+295	[caps_ves_delineate_dce]	Capsular vessels clearly delineated	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+296	[temp_resolution_dce]	Adequate temporal resolution (< =10 sec)	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+297	[alcock_ves_delineate_dce]	Vessels (Alcock canal) clearly delineated	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+298	[artefacts_dce]	Absence of artefacts (eg. movement) DCE	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+299	[dce_fin_qual_calc]	Is DCE of diagnostic quality (all YES)?	calc
+Calculation: ([axial_plane_match_dce] = '1') + ([fov_resolution_dce] = '1') + ([slice_thickness_dce] = '1') + ([precontrast_t1_dce] = '1') + ([fat_supress_dce] = '1') + ([temp_resolution_dce] = '1') + ([total_observe_rate_dce] = '1') + ([caps_ves_delineate_dce] = '1') + ([alcock_ves_delineate_dce] = '1') + ([artefacts_dce] = '1')
+Field Annotation: @HIDDEN
+300	[dce_fin_qual]	Is DCE of diagnostic quality (all YES)?	text
+Field Annotation: @CALCTEXT(if([dce_fin_qual_calc]=10, 'Yes', 'No'))
+301	[two_seq_adeqv_piqual]	Are at least two sequences adequate when evaluated together?	yesno
+1	Yes
+0	No
+
+Field Annotation: @DEFAULT='1'
+302	[piqual_mri]	PI-QUAL	calc
+Calculation: if( [t2_fin_qual] = 'No' AND [dwi_fin_qual] = 'No' AND [dce_fin_qual] = 'No' AND [two_seq_adeqv_piqual] = '0', 1, if([t2_fin_qual] = 'Yes' AND [dwi_fin_qual] = 'No' AND [dce_fin_qual] = 'No' AND [two_seq_adeqv_piqual] = '0', 2, if([t2_fin_qual] = 'No' AND [dwi_fin_qual] = 'Yes' AND [dce_fin_qual] = 'No' AND [two_seq_adeqv_piqual] = '0', 2, if([t2_fin_qual] = 'No' AND [dwi_fin_qual] = 'No' AND [dce_fin_qual] = 'Yes' AND [two_seq_adeqv_piqual] = '0', 2, if([t2_fin_qual] = 'No' AND [dwi_fin_qual] = 'No' AND [dce_fin_qual] = 'No' AND [two_seq_adeqv_piqual] = '1', 3, if([t2_fin_qual] = 'Yes' AND [dwi_fin_qual] = 'No' AND [dce_fin_qual] = 'No' AND [two_seq_adeqv_piqual] = '1', 3, if([t2_fin_qual] = 'No' AND [dwi_fin_qual] = 'Yes' AND [dce_fin_qual] = 'No' AND [two_seq_adeqv_piqual] = '1', 3, if([t2_fin_qual] = 'No' AND [dwi_fin_qual] = 'No' AND [dce_fin_qual] = 'Yes' AND [two_seq_adeqv_piqual] = '1', 3, if([t2_fin_qual] = 'Yes' AND [dwi_fin_qual] = 'Yes' AND [dce_fin_qual] = 'No', 4, if([t2_fin_qual] = 'No' AND [dwi_fin_qual] = 'Yes' AND [dce_fin_qual] = 'Yes', 4, if([t2_fin_qual] = 'Yes' AND [dwi_fin_qual] = 'No' AND [dce_fin_qual] = 'Yes', 4, 5 ) ) ) ) ) ) ) ) ) ) )
+303	[magnetic_resonance_quality_complete]	
+Section Header: Form Status
+Complete?	dropdown
+0	Incomplete
+1	Unverified
+2	Complete
+
+ Instrument:Surgery C61(surgery_c61)
+ Collapse
+
+304	[resection]	RESECTION * Date of surgery: * Total number of operated lesions:   {surgery_date} {total_number_lesion_surg} {total_number_lesion_surg_oth} * Type of surgery: * Lymphadenectomy:   {surgery_type} {lymphadenectomy}   * Surgeon:     {surgeon_query} {surgeon_other}   * Pathologist:     {pathologist_query} {pathologist_other}   Histological finding:  {surgery_text}	descriptive
+305	[surgery_date]	Date of surgery:	text (date_dmy, Min: 1900-01-01, Max: today), Required
+Custom alignment: LV
+306	[surgery_type]	Type of surgery	radio, Required
+1	Open surgery
+2	RALP
+
+Custom alignment: LV
+307	[total_number_lesion_surg]	Total number of operated lesions
+Number of lesions with appropriate form.
+	dropdown, Required
+1	1
+2	2
+3	3
+4	4
+5	5
+6	6
+7	Other
+
+Custom alignment: LV
+308	[total_number_lesion_surg_oth]
+Show the field ONLY if:
+[total_number_lesion_surg] = '7'
+	Total number of operated lesions	text (integer, Min: 0, Max: 100)
+Custom alignment: LV
+Field Annotation: @PLACEHOLDER = 'Number of operated lesions'
+309	[lymphadenectomy]	Lymphadenectomy	radio, Required
+1	Performed
+2	Not performed
+
+Custom alignment: LV
+310	[surgeon_other]
+Show the field ONLY if:
+[surgeon_query]='Other'
+	Surgeon other	text
+311	[pathologist_other]
+Show the field ONLY if:
+[pathologist_query] = 'Other'
+	Pathologist other	text
+312	[surgeon_query]	Surgeon query	sql (autocomplete)
+313	[pathologist_query]	Pathologist query	sql (autocomplete)
+314	[surgery_text]	Histological finding	notes
+Custom alignment: LV
+315	[tnm_surg]	TNM CLASSIFICATION pT: pN: pM: {pt_surg} {pn_surg} {pm_surg} {node_no_surgery_lbl} {node_positive_no_surgery_lbl}   {node_no_surgery} {node_positive_no_surgery}   * R- classification (resection margin):     {classify_r_surg}   * L-invasion:     {classify_l_surg}   * Vascular invasion:     {vascular_inv}     Grade group, ISUP:     {isup}     * Definitive histology (ICD-O): Definitive postoperational histology (ICD-O) - specification: {histol_post_surg} {histol_post_surg_specify} Help for TNM classification:  	descriptive
+(Attachment: COMPARE_TNM_klasifikace.pdf, Display format: Link)
+Field Annotation: @INLINE-PREVIEW
+316	[pt_surg]	pT	dropdown
+1	pT0
+2	pT1a
+3	pT1b
+4	pT1c
+5	pT2a
+6	pT2b
+7	pT2c
+8	pT3a
+9	pT3b
+10	pT4
+11	pTX
+
+Custom alignment: LV
+317	[pn_surg]	pN	dropdown
+1	pN0
+2	pN1
+3	pNX
+
+Custom alignment: LV
+Field Annotation: @DEFAULT='1'
+318	[pm_surg]	pM	dropdown
+1	pM0
+2	pM1a
+3	pM1b
+4	pM1c
+5	pMX
+
+Custom alignment: LV
+Field Annotation: @DEFAULT='5'
+319	[node_no_surgery_lbl]
+Show the field ONLY if:
+[lymphadenectomy] = '1'
+	* Number of resected lymph nodes:	descriptive
+320	[node_no_surgery]
+Show the field ONLY if:
+[lymphadenectomy] = '1'
+	Number of lymph nodes	text (integer, Min: 0, Max: 20), Required
+Custom alignment: LV
+321	[node_positive_no_surgery_lbl]
+Show the field ONLY if:
+[lymphadenectomy] = '1'
+	* Number of positive lymph nodes:	descriptive
+322	[node_positive_no_surgery]
+Show the field ONLY if:
+[lymphadenectomy] = '1'
+	Number of positive lymph nodes	text (integer, Min: 0, Max: [node_no_surgery]), Required
+Custom alignment: LV
+323	[classify_r_surg]	R- classification (resection margin)	dropdown, Required
+1	R0 - No residual tumor
+2	R1 - Microscopic residual tumor
+3	R2 - Macroscopic residual tumor
+4	RX - Presence of residual tumor cannot be assessed
+
+Custom alignment: LV
+324	[classify_l_surg]	L-invasion	dropdown, Required
+1	L0 - No lymphatic invasion
+2	L1 - Lymphatic invasion present
+3	LX - lymphatic invasion cannot be evaluated
+
+Custom alignment: LV
+325	[vascular_inv]	Vascular invasion	dropdown, Required
+1	V0 - No venous invasion
+2	V1 - Microscopic venous invasion
+3	V2 - Macroscopic venous invasion
+4	VX - Venous invasion cannot be evaluated
+
+Custom alignment: LV
+326	[isup]	Grade group, ISUP	dropdown
+1	1
+2	2
+3	3
+4	4
+5	5
+
+Custom alignment: LV
+327	[histol_post_surg]	Definitive histology (ICD-O)	dropdown, Required
+1	Carcinoma/Epithelial tumor
+2	Neuroendocrine tumor
+3	Sarcoma / mesenchymal tumor
+4	Hematolymphoid tumor
+5	Metastasis
+6	Other malignant tumors
+
+Custom alignment: LV
+Field Annotation: @DEFAULT='1'
+328	[histol_post_surg_specify]	Definitive postoperational histology (ICD-O) - specification	text
+SIMPLE:MKN-O 3.2 (CZ)	SIMPLE:MKN-O 3.2 (CZ)
+
+Field Annotation: @DEFAULT='81403 Adenokarcinom, NS'
+329	[surgery_c61_complete]	
+Section Header: Form Status
+Complete?	dropdown
+0	Incomplete
+1	Unverified
+2	Complete
+
+ Instrument:Surgery C61 - resected lesion(surgery_c61_resected_lesion)
+ Collapse
+
+330	[lesion_surg]	LESION All segments affected: {all_sgm} If you checked All segments affected, click on Save & stay to view your selection.	descriptive
+331	[sgm_affected]	Segments affected	calc
+Calculation: sum([sur_prostate_regions(pzpl_apex_rs)], [sur_prostate_regions(pzpm_apex_rs)], [sur_prostate_regions(tzp_apex_rs)], [sur_prostate_regions(as_apex_rs)], [sur_prostate_regions(tza_apex_rs)], [sur_prostate_regions(pza_apex_rs)], [sur_prostate_regions(pzpl_mid_rs)], [sur_prostate_regions(pzpm_mid_rs)], [sur_prostate_regions(as_mid_rs)], [sur_prostate_regions(tza_mid_rs)], [sur_prostate_regions(tzp_mid_rs)], [sur_prostate_regions(pza_mid_rs)], [sur_prostate_regions(pzpl_base_rs)], [sur_prostate_regions(cz_base_rs)], [sur_prostate_regions(tzp_base_rs)], [sur_prostate_regions(tza_base_rs)], [sur_prostate_regions(as_base_rs)], [sur_prostate_regions(pza_base_rs)], [sur_prostate_regions(pzpm_base_rs)], [sur_prostate_regions(sv_base_rs)], [sur_prostate_regions(pzpm_apex_ls)], [sur_prostate_regions(tzp_apex_ls)], [sur_prostate_regions(pzpl_apex_ls)], [sur_prostate_regions(pza_apex_ls)], [sur_prostate_regions(tza_apex_ls)], [sur_prostate_regions(as_apex_ls)], [sur_prostate_regions(pzpm_mid_ls)], [sur_prostate_regions(pzpl_mid_ls)], [sur_prostate_regions(pza_mid_ls)], [sur_prostate_regions(as_mid_ls)], [sur_prostate_regions(tza_mid_ls)], [sur_prostate_regions(tzp_mid_ls)], [sur_prostate_regions(cz_base_ls)], [sur_prostate_regions(pzpl_base_ls)], [sur_prostate_regions(pza_base_ls)], [sur_prostate_regions(as_base_ls)], [sur_prostate_regions(tza_base_ls)], [sur_prostate_regions(tzp_base_ls)], [sur_prostate_regions(pzpm_base_ls)], [sur_prostate_regions(sv_base_ls)]) + (([all_sgm(1)]+1)*100)
+Field Annotation: @HIDDEN
+332	[all_sgm]	All segments affected	checkbox
+1	all_sgm___1	All segments affected
+
+Custom alignment: LH
+Field Annotation: @IF([sgm_affected]>'200' and [sgm_affected]<'240', @SETVALUE='', '')
+333	[sur_prostate_regions]	Prostate regions	checkbox
+pzpl_apex_rs	sur_prostate_regions___pzpl_apex_rs	pzpl_apex_rs
+pzpm_apex_rs	sur_prostate_regions___pzpm_apex_rs	pzpm_apex_rs
+tzp_apex_rs	sur_prostate_regions___tzp_apex_rs	tzp_apex_rs
+pzpm_apex_ls	sur_prostate_regions___pzpm_apex_ls	pzpm_apex_ls
+tzp_apex_ls	sur_prostate_regions___tzp_apex_ls	tzp_apex_ls
+pzpl_apex_ls	sur_prostate_regions___pzpl_apex_ls	pzpl_apex_ls
+pza_apex_ls	sur_prostate_regions___pza_apex_ls	pza_apex_ls
+tza_apex_ls	sur_prostate_regions___tza_apex_ls	tza_apex_ls
+as_apex_ls	sur_prostate_regions___as_apex_ls	as_apex_ls
+as_apex_rs	sur_prostate_regions___as_apex_rs	as_apex_rs
+tza_apex_rs	sur_prostate_regions___tza_apex_rs	tza_apex_rs
+pza_apex_rs	sur_prostate_regions___pza_apex_rs	pza_apex_rs
+urethra	sur_prostate_regions___urethra	urethra
+pzpl_mid_rs	sur_prostate_regions___pzpl_mid_rs	pzpl_mid_rs
+pzpm_mid_rs	sur_prostate_regions___pzpm_mid_rs	pzpm_mid_rs
+pzpm_mid_ls	sur_prostate_regions___pzpm_mid_ls	pzpm_mid_ls
+pzpl_mid_ls	sur_prostate_regions___pzpl_mid_ls	pzpl_mid_ls
+pza_mid_ls	sur_prostate_regions___pza_mid_ls	pza_mid_ls
+as_mid_ls	sur_prostate_regions___as_mid_ls	as_mid_ls
+tza_mid_ls	sur_prostate_regions___tza_mid_ls	tza_mid_ls
+tzp_mid_ls	sur_prostate_regions___tzp_mid_ls	tzp_mid_ls
+as_mid_rs	sur_prostate_regions___as_mid_rs	as_mid_rs
+tza_mid_rs	sur_prostate_regions___tza_mid_rs	tza_mid_rs
+tzp_mid_rs	sur_prostate_regions___tzp_mid_rs	tzp_mid_rs
+pza_mid_rs	sur_prostate_regions___pza_mid_rs	pza_mid_rs
+pzpl_base_rs	sur_prostate_regions___pzpl_base_rs	pzpl_base_rs
+cz_base_rs	sur_prostate_regions___cz_base_rs	cz_base_rs
+cz_base_ls	sur_prostate_regions___cz_base_ls	cz_base_ls
+pzpl_base_ls	sur_prostate_regions___pzpl_base_ls	pzpl_base_ls
+pza_base_ls	sur_prostate_regions___pza_base_ls	pza_base_ls
+as_base_ls	sur_prostate_regions___as_base_ls	as_base_ls
+tza_base_ls	sur_prostate_regions___tza_base_ls	tza_base_ls
+tzp_base_ls	sur_prostate_regions___tzp_base_ls	tzp_base_ls
+tzp_base_rs	sur_prostate_regions___tzp_base_rs	tzp_base_rs
+tza_base_rs	sur_prostate_regions___tza_base_rs	tza_base_rs
+as_base_rs	sur_prostate_regions___as_base_rs	as_base_rs
+pza_base_rs	sur_prostate_regions___pza_base_rs	pza_base_rs
+pzpm_base_ls	sur_prostate_regions___pzpm_base_ls	pzpm_base_ls
+pzpm_base_rs	sur_prostate_regions___pzpm_base_rs	pzpm_base_rs
+sv_base_rs	sur_prostate_regions___sv_base_rs	sv_base_rs
+sv_base_ls	sur_prostate_regions___sv_base_ls	sv_base_ls
+
+Field Annotation: @HIDDEN; @IF([sgm_affected]='200', @SETVALUE='pzpl_apex_rs,pzpm_apex_rs,tzp_apex_rs,pzpm_apex_ls,tzp_apex_ls,pzpl_apex_ls,pza_apex_ls,tza_apex_ls,as_apex_ls,as_apex_rs,tza_apex_rs,pza_apex_rs,pzpl_mid_rs,pzpm_mid_rs,pzpm_mid_ls,pzpl_mid_ls,pza_mid_ls,as_mid_ls,tza_mid_ls,tzp_mid_ls,as_mid_rs,tza_mid_rs,tzp_mid_rs,pza_mid_rs,pzpl_base_rs,cz_base_rs,cz_base_ls,pzpl_base_ls,pza_base_ls,as_base_ls,tza_base_ls,tzp_base_ls,tzp_base_rs,tza_base_rs,as_base_rs,pza_base_rs,pzpm_base_ls,pzpm_base_rs,sv_base_rs,sv_base_ls', '');
+334	[sur_prostate_imagemap]	LOCATION OF LESION     RIGHT SIDE  LEFT SIDE LESION CHARACTERISTICS * Type of histology: {hist_type_sur}     X-dimension of the lesion [mm]: {lesion_x_mm} Y-dimension of the lesion [mm]: {lesion_y_mm} Z-dimension of the lesion [mm]: {lesion_z_mm} * Extraprostatic extension: {extracaps_ext} * Perineural invasion:  {perineural_inv_sur}   Gleason primary score: {gleason_prim_grade} Gleason primary score (%): {gleason_prim_perc}   Gleason secondary score: {gleason_sec_grade} Gleason secondary score (%): {gleason_sec_perc}   Gleason tertiary score: {gleason_tert_grade} Gleason tertiary score (%): {gleason_tert_perc}  	descriptive
+Field Annotation: @CUSTOM_IMAGEMAP=registerImageMap("prostateimage", "prostatemap", "sur_prostate_regions", "rgba(255, 0, 0, 0.6)", "data-key");
+335	[hist_type_sur]	Type of histology	dropdown, Required
+1	Benign
+2	Carcinoma
+3	Neuroendocrine tumor
+4	Sarcoma
+5	Haematolymphoid tumor
+6	Metastasis
+7	Other malignant tumors
+
+Custom alignment: LV
+Field Annotation: @DEFAULT='2'
+336	[lesion_x_mm]	X-dimension of the lesion [mm]
+mm
+	text (number, Min: 0, Max: 100)
+Custom alignment: LV
+337	[lesion_y_mm]	Y-dimension of the lesion [mm]
+mm
+	text (number, Min: 0, Max: 100)
+Custom alignment: LV
+338	[lesion_z_mm]	Z-dimension of the lesion [mm]
+mm
+	text (number, Min: 0, Max: 100)
+Custom alignment: LV
+339	[extracaps_ext]	Extraprostatic extension	dropdown, Required
+1	Yes
+2	Uncertain
+3	No
+4	Not specified
+
+Custom alignment: LV
+340	[perineural_inv_sur]	Perineural invasion	dropdown, Required
+1	Yes
+2	Uncertain
+3	No
+4	Not specified
+
+Custom alignment: LV
+341	[gleason_prim_grade]	Gleason primary score	dropdown
+1	1
+2	2
+3	3
+4	4
+5	5
+
+Custom alignment: LV
+342	[gleason_prim_perc]	Gleason primary score (%)
+%
+	text (number, Min: 0, Max: 100)
+Custom alignment: LV
+343	[gleason_sec_grade]	Gleason secondary score	dropdown
+1	1
+2	2
+3	3
+4	4
+5	5
+
+Custom alignment: LV
+344	[gleason_sec_perc]	Gleason secondary score (%)
+%
+	text (number, Min: 0, Max: 100)
+Custom alignment: LV
+345	[gleason_tert_grade]	Gleason tertiary score	dropdown
+1	1
+2	2
+3	3
+4	4
+5	5
+
+Custom alignment: LV
+346	[gleason_tert_perc]	Gleason tertiary score (%)
+%
+	text (number, Min: 0, Max: 100)
+Custom alignment: LV
+347	[surgery_c61_resected_lesion_complete]	
+Section Header: Form Status
+Complete?	dropdown
+0	Incomplete
+1	Unverified
+2	Complete
+
+ Instrument:Other procedures(other_procedures)
+ Collapse
+
+348	[other_procedures]	OTHER PROCEDURES (PET, RADIOTHERAPY, ANOTHER CLINICAL EVENT) * Choice of event:     {other_treatment}    	descriptive
+349	[other_treatment]	Choice of event
+choice_event
+	radio, Required
+1	Radiotherapy
+2	PET
+3	Other clinical event
+
+350	[pet]
+Show the field ONLY if:
+[other_treatment] = "2"
+	PET * Date of examination: * Radiopharmaceutical: * Result: {date_exam_pet} {radiopharma} {result_pet}	descriptive
+351	[date_exam_pet]	Date of examination	text (date_dmy, Min: 1900-01-01, Max: today), Required
+352	[radiopharma]	Radiopharmaceutical:	text, Required
+353	[result_pet]	Result:
+	dropdown, Required
+1	Positive
+2	Negative
+
+354	[radiotherapy]
+Show the field ONLY if:
+[other_treatment] = "1"
+	RADIOTHERAPY * Start date: * End date: {start_date_rt} {end_date_rt} Radiotherapy - type: Total irradiation dose (Gy): {rt_type} {total_dose}	descriptive
+355	[start_date_rt]	Start date:	text (date_dmy, Min: 1900-01-01, Max: today), Required
+356	[end_date_rt]	End date:	text (date_dmy, Min: [start_date_rt], Max: today), Required
+357	[rt_type]	Radiotherapy - type	dropdown (autocomplete)
+1	EBRT
+2	IMRT
+3	Brachytherapy
+4	Proton beam therapy
+5	Other radiotherapy type
+
+358	[total_dose]	Total irradiation dose (Gy)	text (number_comma_decimal, Min: 0, Max: 100)
+359	[ace]
+Show the field ONLY if:
+[other_treatment] = "3"
+	ANOTHER CLINICAL EVENT * Date of other examination: HIS record number: {date_other_exam} {his_number} * Note:  {note}	descriptive
+360	[date_other_exam]	Date of other examination:	text (date_dmy, Min: 1900-01-01, Max: today), Required
+361	[his_number]	HIS record number:	text (integer, Min: 0, Max: 9999999)
+362	[note]	Note:	notes, Required
+363	[other_procedures_complete]	
+Section Header: Form Status
+Complete?	dropdown
+0	Incomplete
+1	Unverified
+2	Complete

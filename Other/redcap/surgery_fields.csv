@@ -1,0 +1,44 @@
+instrument,variable,label,type,required,choices,branching,default_annotation,proposed_source,tier,notes
+surgery_c61,surgery_date,Date of surgery,text date_dmy (1900-01-01..today),yes,,,,doctor,4,Not in any checked report. Import as YYYY-MM-DD.
+surgery_c61,surgery_type,Type of surgery,radio,yes,1=Open surgery | 2=RALP,,,doctor,4,
+surgery_c61,total_number_lesion_surg,Total number of operated lesions,dropdown,yes,1=1 | 2=2 | 3=3 | 4=4 | 5=5 | 6=6 | 7=Other,,,doctor (suggest from report),4,Specimen scope. Not the number of drawing marks.
+surgery_c61,total_number_lesion_surg_oth,Total number of operated lesions (other),text integer 0..100,,,[total_number_lesion_surg]='7',@PLACEHOLDER,doctor,4,
+surgery_c61,lymphadenectomy,Lymphadenectomy,radio,yes,1=Performed | 2=Not performed,,,doctor,4,Not in any checked report. Drives the node fields.
+surgery_c61,surgeon_query,Surgeon query,sql autocomplete,,,,,doctor,4,Value list is a server-side SQL query; raw values not inspected.
+surgery_c61,surgeon_other,Surgeon other,text,,,[surgeon_query]='Other',,doctor,4,
+surgery_c61,pathologist_query,Pathologist query,sql autocomplete,,,,,doctor or report signature (unverified),4,
+surgery_c61,pathologist_other,Pathologist other,text,,,[pathologist_query]='Other',,doctor,4,
+surgery_c61,surgery_text,Histological finding,notes (free text),,,,,report text (microscopic finding),3,Only free-text field in the two surgery instruments. Patient-linked text.
+surgery_c61,pt_surg,pT,dropdown,,1=pT0 | 2=pT1a | 3=pT1b | 4=pT1c | 5=pT2a | 6=pT2b | 7=pT2c | 8=pT3a | 9=pT3b | 10=pT4 | 11=pTX,,,report classification line,3,Optional in REDCap.
+surgery_c61,pn_surg,pN,dropdown,,1=pN0 | 2=pN1 | 3=pNX,,@DEFAULT='1',report or doctor,3,"Default pN0 applies in the web form only, not on import."
+surgery_c61,pm_surg,pM,dropdown,,1=pM0 | 2=pM1a | 3=pM1b | 4=pM1c | 5=pMX,,@DEFAULT='5',report or doctor,3,Default pMX applies in the web form only.
+surgery_c61,node_no_surgery,Number of lymph nodes,text integer 0..20,yes,,[lymphadenectomy]='1',,report or doctor,3,Required only when lymphadenectomy = Performed.
+surgery_c61,node_positive_no_surgery,Number of positive lymph nodes,text integer 0..[node_no_surgery],yes,,[lymphadenectomy]='1',,report or doctor,3,
+surgery_c61,classify_r_surg,R- classification (resection margin),dropdown,yes,1=R0 No residual tumor | 2=R1 Microscopic residual tumor | 3=R2 Macroscopic residual tumor | 4=RX Cannot be assessed,,,report classification line,3,
+surgery_c61,classify_l_surg,L-invasion,dropdown,yes,1=L0 No lymphatic invasion | 2=L1 Lymphatic invasion present | 3=LX Cannot be evaluated,,,report classification line,3,
+surgery_c61,vascular_inv,Vascular invasion,dropdown,yes,1=V0 No venous invasion | 2=V1 Microscopic venous invasion | 3=V2 Macroscopic venous invasion | 4=VX Cannot be evaluated,,,report classification line,3,
+surgery_c61,isup,"Grade group, ISUP",dropdown,,1 | 2 | 3 | 4 | 5,,,report classification line,3,Specimen scope. The lesion instrument has no grade-group field.
+surgery_c61,histol_post_surg,Definitive histology (ICD-O),dropdown,yes,1=Carcinoma/Epithelial tumor | 2=Neuroendocrine tumor | 3=Sarcoma / mesenchymal tumor | 4=Hematolymphoid tumor | 5=Metastasis | 6=Other malignant tumors,,@DEFAULT='1',report,3,
+surgery_c61,histol_post_surg_specify,Definitive postoperational histology (ICD-O) - specification,"text, ontology MKN-O 3.2 (CZ)",,,,"@DEFAULT='81403 Adenokarcinom, NS'",report,3,Stored value format (code only or code + label) not verified.
+surgery_c61,surgery_c61_complete,Form status,dropdown,,0=Incomplete | 1=Unverified | 2=Complete,,,workflow,5,Suggest 1 (Unverified) for machine-drafted rows until a doctor confirms.
+surgery_c61_resected_lesion,all_sgm___1,All segments affected,checkbox,,1=All segments affected,,@IF clears it when a subset is chosen,drawing,1,Web-form shortcut that checks 40 sectors (not urethra). On import write the sectors explicitly.
+surgery_c61_resected_lesion,sur_prostate_regions___<code>,Prostate regions (41 columns),"checkbox, hidden, shown as image map",,see sector_crosswalk.csv,,@HIDDEN; @CUSTOM_IMAGEMAP,drawing + report side,1,"1 = sector affected, 0 = not. One lesion instance holds one set of sectors."
+surgery_c61_resected_lesion,hist_type_sur,Type of histology,dropdown,yes,1=Benign | 2=Carcinoma | 3=Neuroendocrine tumor | 4=Sarcoma | 5=Haematolymphoid tumor | 6=Metastasis | 7=Other malignant tumors,,@DEFAULT='2',report,2,'Benign' exists: open question whether non-tumour marks such as inflammation get an instance.
+surgery_c61_resected_lesion,lesion_x_mm,X-dimension of the lesion [mm],text number 0..100,,,,,report,2,Axes are not defined in the form; the report often does not name them either.
+surgery_c61_resected_lesion,lesion_y_mm,Y-dimension of the lesion [mm],text number 0..100,,,,,report,2,
+surgery_c61_resected_lesion,lesion_z_mm,Z-dimension of the lesion [mm],text number 0..100,,,,,report,2,
+surgery_c61_resected_lesion,extracaps_ext,Extraprostatic extension,dropdown,yes,1=Yes | 2=Uncertain | 3=No | 4=Not specified,,,report,2,Required. 'Not specified' is the only way to say not reported.
+surgery_c61_resected_lesion,perineural_inv_sur,Perineural invasion,dropdown,yes,1=Yes | 2=Uncertain | 3=No | 4=Not specified,,,report,2,
+surgery_c61_resected_lesion,gleason_prim_grade,Gleason primary score,dropdown,,1 | 2 | 3 | 4 | 5,,,report,2,
+surgery_c61_resected_lesion,gleason_prim_perc,Gleason primary score (%),text number 0..100,,,,,report,2,
+surgery_c61_resected_lesion,gleason_sec_grade,Gleason secondary score,dropdown,,1 | 2 | 3 | 4 | 5,,,report,2,
+surgery_c61_resected_lesion,gleason_sec_perc,Gleason secondary score (%),text number 0..100,,,,,report,2,
+surgery_c61_resected_lesion,gleason_tert_grade,Gleason tertiary score,dropdown,,1 | 2 | 3 | 4 | 5,,,report,2,
+surgery_c61_resected_lesion,gleason_tert_perc,Gleason tertiary score (%),text number 0..100,,,,,report,2,
+surgery_c61_resected_lesion,sgm_affected,Segments affected (calc),"calc, hidden",,,,,derived,5,sum of 40 sector checkboxes + ((all_sgm+1)*100). Not in the import template.
+surgery_c61_resected_lesion,surgery_c61_resected_lesion_complete,Form status,dropdown,,0=Incomplete | 1=Unverified | 2=Complete,,,workflow,5,
+patients_personal_data,record_id,Record ID,"text, identifier",,,,,REDCap,0,Format seen: CMP- plus 7 digits. How new IDs are issued was not checked.
+patients_personal_data,name,Name,"text, identifier",yes,,,,report header (production),0,
+patients_personal_data,surname,Surname,"text, identifier",yes,,,,report header (production),0,
+patients_personal_data,birth_id,Birth certificate number (rodne cislo),"text, identifier, @CHARLIMIT=10",yes,,,,report header (production),0,Format without the slash. dob_* fields are computed from it.
+patients_personal_data,subject_id,Patient ID (CLADE IS),"text, identifier",,,,,hospital,0,Probably the code shown in brackets next to the record ID (not confirmed).
