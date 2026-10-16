@@ -1,5 +1,7 @@
 # Image implementation plan
 
+> Steps 5 to 7 are revised by [IMAGE-PIPELINE-RECONCILIATION.md](IMAGE-PIPELINE-RECONCILIATION.md): code calculates sectors from the ink mask, Gemini labels marks without polygons or certainty, and calculated sectors are the draft. Follow that file where the two differ.
+
 Agreed direction, 2026-10-16. This file records the implementation decisions from the planning discussion. [IMAGE_PIPELINE.md](IMAGE_PIPELINE.md) contains the earlier research proposal. Extraction and matching must follow [STRUCTURE.md](../data_schema/STRUCTURE.md) and [MATCHING.md](../data_schema/MATCHING.md).
 
 This plan covers drawing processing and per-view extraction. Reference preparation, local alignment, crops and candidate handwriting isolation now have an eight-sheet OpenCV probe. A separate Gemini probe has run two independent readings of eight selected crops with both `gemini-3.5-flash-lite` and `gemini-3.8-flash`, producing 32 validated readings. See [handwriting results](research/handwriting_isolation_probe.md) and [Gemini results](research/gemini_drawing_probe.md) for failures and limits. These probes do not establish extraction accuracy. Report extraction and report-to-lesion matching are another contributor's work.

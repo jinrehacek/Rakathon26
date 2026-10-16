@@ -35,5 +35,6 @@ Local redaction, a hospital-held patient mapping, external extraction and local 
 - Inspect the files, data and command output before claiming anything about them. Say what you verified and label guesses.
 - Carry authorized work through implementation and verification. Ask again only when new information changes the scope or needs a separate decision.
 - Measure model accuracy on our scans, not on vendor benchmarks. A run on three sheets is a probe, so call it one.
+- Before calling an image-pipeline change good, prepare 5 to 8 grading sheets and ask the user to grade them. Format: `Other/IMAGE-PIPELINE-RECONCILIATION.md`, section "Testing".
 - Write plainly. Cut praise, filler, repeated explanations and process narration.
 - Change only what the task needs. Commit only when asked.
