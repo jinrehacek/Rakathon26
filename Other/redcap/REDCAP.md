@@ -16,7 +16,7 @@ Files next to this one:
 | `redcap_areas.json` | The 40 sector `<area>` boxes read from the live form, in the 513 × 631 frame. Urethra (a circle) is added by hand in the script. |
 | `gen_redcap_docs.py`, `gen_handout.py` | Rebuild the crosswalk, field list, example import and handout offline: `python3 -I gen_redcap_docs.py && python3 -I gen_handout.py`. They read `Other/reference/sectors.json`. |
 
-> **Public repo warning.** `github.com/jinrehacek/Rakathon26` is public. `image_01_reference_alignment.md` calls the COMPARE choice list private, and this folder is a copy of it. I added `/Other/redcap/` to `.gitignore` before writing. Remove that line only after the project owner (Jan Švancara) says the dictionary can be published.
+> **Public repo.** `github.com/jinrehacek/Rakathon26` is public. `image_01_reference_alignment.md` calls the COMPARE choice list private, and this folder is a copy of it (`codebook_raw.txt`, `import_template_header.csv`, `surgery_fields.csv`, `sector_crosswalk.csv`). It is committed on request. It holds no patient data and no API token. If the project owner (Jan Švancara) objects, remove the folder.
 
 ---
 
@@ -396,6 +396,6 @@ Established from this session:
 
 ## 12. Changes made and suggested
 
-Made: `.gitignore` gained `/Other/redcap/` (uncommitted); this folder with the files listed at the top. The browser tab was moved off the data-entry form to the Codebook.
+Made: this folder with the files listed at the top. The browser tab was moved off the data-entry form to the Codebook.
 
 Suggested, not done: correct `afs_` → `as_` and the `†` notes in `image_01_reference_alignment.md`; fill `redcap_code_mapping` in `Other/reference/sectors.json` from `sector_crosswalk.csv`; add a "Benign finding" rule to the extraction notes once the doctor answers question 1.
