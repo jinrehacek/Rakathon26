@@ -25,7 +25,10 @@ def response_schema():
     evidence = definitions['Evidence']
     for key in ('start_offset', 'end_offset', 'text_layer_id', 'offset_convention'):
         evidence['properties'].pop(key, None)
-    evidence['required'] = ['id']
+    evidence['properties']['image_region'] = {'$ref': '#/$defs/ImageRegion'}
+    evidence['required'] = ['id', 'image_region']
+    # Review belongs to a doctor; the model does not author review metadata.
+    definitions['Observation']['properties'].pop('review_status', None)
     definitions['ModelExtraction'] = extraction
     return {'type': 'object', 'required': ['handwriting', 'extraction'], 'additionalProperties': False,
             'properties': {

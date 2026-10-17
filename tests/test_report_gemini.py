@@ -192,3 +192,11 @@ def test_source_order_can_use_a_subjects_anchored_observation(tmp_path):
     bundle=load_report(run/'report.json')
     assert [s['id'] for s in bundle['extraction']['subjects']]==['specimen','focus-a','focus-b']
     assert next(o for o in bundle['extraction']['observations'] if o['id']=='f1-laterality')['subject_id']=='focus-a'
+
+
+def test_model_cannot_claim_doctor_review(tmp_path):
+    path,layer,raw=prepared(tmp_path)
+    for obs in raw['extraction']['observations']:obs['review_status']='accepted'
+    run=run_extraction(layer,GeminiExtractor(key='key',transport=lambda b,k:response(raw)),path.parent)
+    bundle=load_report(run/'report.json')
+    assert {o['review_status'] for o in bundle['extraction']['observations']}=={'unreviewed'}

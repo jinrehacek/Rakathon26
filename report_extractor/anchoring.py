@@ -71,6 +71,7 @@ def anchor_response(response: dict, layer: TextLayer) -> dict:
 
     anchor_index = {a['id']: a for a in evidence}
     for obs in observations:
+        obs['review_status'] = 'unreviewed'
         refs = obs.get('evidence_ids', [])
         unavailable = [ref for ref in refs if ref in failed]
         if unavailable and obs.get('status') == 'recorded':
