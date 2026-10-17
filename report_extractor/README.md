@@ -70,3 +70,18 @@ the Gemini adapter's `response_schema()` describes its pre-anchoring response.
 Production provider and hospital approval requirements remain in
 [TASK.md](../TASK.md). The current hackathon scans are authorised for Gemini;
 that agreement does not select a production service.
+
+## Verification
+
+Verified on 2026-10-17: 291 Python tests and 38 subtests in `tests/`, 14
+preprocessing/showcase tests and 5 subtests, and the Node test suite pass. The
+Node suite includes the legacy report-only adapter's nine checks.
+
+All three live hackathon probe cases produced complete `report-3` bundles.
+Central loaded each resolved run, verified its pinned hash and wrote a combined
+draft with its review questions retained. The central probe used the rules brain
+without another model call. Original manual references remain archived, and their
+separate `report-3` reference versions pass validation. The local probe summary
+and generated records stay under ignored `Other/output/`.
+
+This checks integration. Model accuracy and doctor agreement have not been measured.
