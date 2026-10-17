@@ -1,3 +1,4 @@
+import pytest
 import json
 
 import cv2 as cv
@@ -134,6 +135,8 @@ def test_replay_needs_no_client(tmp_path):
     client = FakeClient({})
     groups, *_ = grouping.run_grouping(case, marks, orientations, client=client, key="k", replay=True)
     assert client.calls == [] and groups[0].id == "g1"
+    with pytest.raises(RuntimeError, match="different marks"):
+        grouping.run_grouping(case, marks[:-1], orientations, client=client, key="k", replay=True)
 
 
 def test_annotated_sheet_draws_and_does_not_touch_input():
