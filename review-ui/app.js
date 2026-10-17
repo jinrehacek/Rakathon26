@@ -3,6 +3,9 @@ import { adaptAnalysis } from "./analysis.js";
 import { createDoctorLesion, validSavedReview, validateEvidence } from "./review-state.js";
 import { stageRegion, pendingRegionCodes, documentRegions } from "./region-edits.js";
 import { sectorLabel, sectorName } from "./map-labels.js";
+import { adaptCombined, digest } from "./combined-analysis.js";
+import { SURGERY_FIELDS } from "./surgery.js";
+import { buildCentralDecisions } from "./central-decisions.js";
 
 let storageKey;
 const NS = "http://www.w3.org/2000/svg";
@@ -51,7 +54,7 @@ function evidenceContext() {
 function save() {
   try {
     localStorage.setItem(storageKey, JSON.stringify(state));
-    $("save-status").textContent = "Saved locally · showcase only";
+    $("save-status").textContent = state.showcase ? "Saved locally · showcase only" : "Saved locally on this browser";
     notify("");
   } catch {
     $("save-status").textContent = "Not saved";
@@ -65,7 +68,7 @@ function fillMap(svg, subset, { interactive = true, labels = true } = {}) {
   for (const sector of subset) {
     const members = visible.filter((lesion) => lesion.regions.includes(sector.code));
     const assigned = members.some((lesion) => lesion.id === activeId);
-    const uncertain = !active().excluded && active().issues.some((issue) =>
+    const uncertain = !active().excluded && [...active().issues, ...(state.caseIssues || []).filter(i => i.lesionIds?.includes(activeId))].some((issue) =>
       (!issue.resolved || issue.disposition === "reviewed_unknown") && issue.regionCodes.includes(sector.code));
     const polygon = document.createElementNS(NS, "polygon");
     polygon.setAttribute("points", sector.points.map((point) => point.join(",")).join(" "));
@@ -183,6 +186,8 @@ function renderRegion() {
     <p><strong>Associated records:</strong> ${members.length ? members.map((member) => escape(member.label)).join(", ") : "None — not a confirmed negative finding."}</p>
     <div class="association-links">${members.map((member) => `<button data-lesion="${escape(member.id)}">${escape(member.label)}</button>`).join("")}</div>
     <p>Shared regions keep separate lesion associations; values are not merged.</p>`;
+  const flags = [...active().issues, ...(state.caseIssues || [])].filter(i => !i.resolved && i.regionCodes.includes(regionCode));
+  if (flags.length) $("region-detail").innerHTML += `<p>Flagged for review:</p><ul>${flags.map(i => `<li><a href="#issue-${escape(i.id)}">${escape(i.message)}</a></li>`).join("")}</ul>`;
 }
 
 function renderObservations() {
@@ -192,10 +197,10 @@ function renderObservations() {
     ["Inferred / calculated suggestions", observations.filter(item => item.status === "recorded" && !["explicit", "normalized"].includes(item.basis))],
     ["Unavailable findings", observations.filter(item => item.status !== "recorded")],
   ];
-  $("analysis-observations").innerHTML = '<p class="muted">These findings belong to the synthetic example report, not the displayed scans. Original observations remain unchanged.</p>' +
+  $("analysis-observations").innerHTML = `<p class="muted">${state.showcase ? 'Synthetic example findings, unrelated to the scans.' : 'Pinned source assessments. Conflicts and original observations stay unchanged.'}</p>` +
     sourceGroups.filter(([, items]) => items.length).map(([heading, items]) => `<h3>${heading}</h3>` + items.map((observation) => `<article>
       <p><strong>${escape(observation.property)}</strong> · ${escape(observation.status)} · ${escape(observation.basis)}</p>
-      <p>${escape(observation.value?.original_wording || observation.value?.original_code || observation.unavailable_reason || JSON.stringify(observation.value ?? null))}</p>
+      <p>${escape(observation.value?.original_wording || observation.value?.original_code || observation.unavailable_reason || JSON.stringify(observation.value ?? null))}</p><p class="muted">Disposition: ${escape(observation.disposition || "source observation")}; confidence: ${escape(observation.confidence?.final || "unassessed")}. ${escape((observation.confidence?.explanations || []).join(" "))}</p>${observation.candidates?.length ? `<pre class="alternative-values">${escape(JSON.stringify(observation.candidates, null, 2))}</pre>` : ""}<p></p>
       ${(observation.evidence || []).map((evidence) => `<blockquote>${escape(evidence.quotation)}</blockquote>`).join("")}
       <p class="muted">Reading: ${escape(observation.certainty?.extraction || "unassessed")}; interpretation: ${escape(observation.certainty?.interpretation || "unassessed")}</p>
     </article>`).join("")).join("");
@@ -235,24 +240,36 @@ function renderFields() {
       ? `<select data-field="${escape(field.name)}" ${active().excluded ? "disabled" : ""}><option value="">Not supplied — choose if known</option>${field.choices.map(([code, label]) =>
         `<option value="${escape(code)}" ${String(code) === value ? "selected" : ""}>${escape(label)}</option>`).join("")}</select>`
       : `<input data-field="${escape(field.name)}" ${active().excluded ? "disabled" : ""} type="number" step="any" min="${field.min ?? 0}" max="${field.max ?? 100}" value="${escape(value)}">`;
-    return `<label class="${field.choices ? "wide" : ""}">${escape(field.label)}${field.required ? " *" : ""}${input}<small data-field-origin="${escape(field.name)}">${provenance}</small></label>`;
+    const prop = field.name === "hist_type_sur" ? "histology_type" : field.name === "extracaps_ext" ? "extraprostatic_extension" : field.name === "perineural_inv_sur" ? "perineural_invasion" : field.name.startsWith("gleason_") ? "gleason_patterns" : "dimensions";
+    const observation = active().sourceObservations.find(p => p.property === prop);
+    const flag = [...active().issues, ...(state.caseIssues || [])].find(i => !i.resolved && i.severity !== "info" && (
+      i.id.includes(prop) || i.sourceIssue?.property === prop || i.sourceIssue?.source_issue?.property === prop ||
+      (i.sourceIssue?.context || []).some(ref => [...observation?.supports || [], ...observation?.evidence_ids || []].includes(ref))));
+    return `<label class="${field.choices ? "wide" : ""}">${escape(field.label)}${field.required ? " *" : ""}${input}<small data-field-origin="${escape(field.name)}">${provenance}${flag ? ` · <a href="#issue-${escape(flag.id)}">Review flag</a>` : ""}</small></label>`;
   }).join("");
 }
 
-function renderIssues() {
-  $("issues").innerHTML = active().issues.map((issue) => `<article class="issue ${issue.resolved ? "resolved" : ""}">
-    <p><strong>${issue.resolved ? issue.disposition === "reviewed_unknown" ? "Reviewed — still unknown" : "Resolved" : "Needs review"}</strong> · ${escape(issue.message)}</p>
+function issueMarkup(issues) {
+  return issues.map((issue) => `<article id="issue-${escape(issue.id)}" tabindex="-1" class="issue ${issue.resolved ? "resolved" : ""}">
+    <p><strong>${issue.severity === "info" ? "Information" : issue.resolved ? issue.disposition === "reviewed_unknown" ? "Reviewed — still unknown" : "Resolved" : "Needs review"}</strong> · ${escape(issue.message)}</p>
     ${issue.reopenedReason ? `<p>${escape(issue.reopenedReason)}</p>` : ""}
     <p class="source-ref">Source: ${escape(issue.sourceRef)}<br>Hint: ${escape(issue.hint)}</p>
-    <label>Decision / reason<textarea data-resolution="${escape(issue.id)}" ${active().excluded ? "disabled" : ""} placeholder="Explain the correction or why uncertainty is retained.">${escape(issue.resolution)}</textarea></label>
-    <label>Review outcome<select data-disposition="${escape(issue.id)}" ${active().excluded || !issue.resolution.trim() ? "disabled" : ""}>
+    ${issue.sourceIssue?.alternatives?.length ? `<details><summary>Matching alternatives</summary><pre class="alternative-values">${escape(JSON.stringify(issue.sourceIssue.alternatives, null, 2))}</pre></details>` : ""}
+    <label>Decision / reason<textarea data-resolution="${escape(issue.id)}" ${active()?.excluded && !issue.sourceIssue ? "disabled" : ""} placeholder="Explain the correction or why uncertainty is retained.">${escape(issue.resolution)}</textarea></label>
+    <label>Review outcome<select data-disposition="${escape(issue.id)}" ${(active()?.excluded && !issue.sourceIssue) || !issue.resolution.trim() ? "disabled" : ""}>
       <option value="unresolved" ${!issue.resolved ? "selected" : ""}>Needs review</option>
       <option value="resolved" ${issue.resolved && issue.disposition !== "reviewed_unknown" ? "selected" : ""}>Reviewed and addressed</option>
       <option value="reviewed_unknown" ${issue.resolved && issue.disposition === "reviewed_unknown" ? "selected" : ""}>Reviewed — genuinely unknown</option>
     </select></label>
   </article>`).join("") || '<p class="muted">No supplied uncertainty flags for this record.</p>';
-  const issues = state.lesions.filter((lesion) => !lesion.excluded).flatMap((lesion) => lesion.issues);
-  $("issue-count").textContent = `${issues.filter((issue) => !issue.resolved).length} open · ${issues.filter((issue) => issue.resolved && issue.disposition === "reviewed_unknown").length} unknown`;
+  }
+
+function renderIssues() {
+  $("issues").innerHTML = issueMarkup(active().issues);
+  $("case-issues").innerHTML = issueMarkup((state.caseIssues || []).filter(i => i.severity !== "info"));
+  $("information-issues").innerHTML = (state.caseIssues || []).filter(i => i.severity === "info").map(i => `<article><p><strong>Information</strong> · ${escape(i.message)}</p><p>${escape(i.sourceRef)}</p></article>`).join("") || "No information notices.";
+  const issues = [...(state.caseIssues || []), ...state.lesions.filter((lesion) => !lesion.excluded).flatMap((lesion) => lesion.issues)];
+  $("issue-count").textContent = `${issues.filter((issue) => issue.severity !== "info" && !issue.resolved).length} open · ${issues.filter((issue) => issue.resolved && issue.disposition === "reviewed_unknown").length} unknown`;
   $("confirm-lesion").checked = active().reviewed;
   $("confirm-lesion").disabled = active().excluded || pendingRegionCodes(active()).length > 0 ||
     active().issues.some((issue) => !issue.resolved || !issue.resolution.trim());
@@ -263,12 +280,17 @@ function renderReadiness() {
   $("export-csv").disabled = errors.length > 0;
   $("export-summary").textContent = errors.length
     ? `${errors.length} item${errors.length === 1 ? "" : "s"} to address before export. Review every included lesion and issue; unknown is allowed only where REDCap permits it.`
-    : `Ready to download ${state.lesions.filter((lesion) => !lesion.excluded).length} first-import lesion rows. Nothing will be sent to REDCap.`;
+    : `Ready to download ${state.exportScope === "surgery" ? "one surgery row and " : ""}${state.lesions.filter((lesion) => !lesion.excluded).length} first-import lesion rows. Nothing will be sent to REDCap.`;
   $("export-errors").innerHTML = errors.map((error) => `<li>${escape(error)}</li>`).join("");
   $("csv-preview").textContent = errors.length ? "Complete review to enable export." : buildLesionCsv(state, sectors);
 }
 
 function render() {
+  if (!active()) {
+    $("case-issues").innerHTML = issueMarkup((state.caseIssues || []).filter(i => i.severity !== "info"));
+    renderSurgery(); renderMatching(); renderReadiness();
+    return;
+  }
   $("record-id").value = state.recordId;
   $("lesion-list").innerHTML = state.lesions.map((lesion) => `<button class="lesion-button ${lesion.id === activeId ? "active" : ""} ${lesion.excluded ? "excluded" : ""}" data-lesion="${escape(lesion.id)}" aria-pressed="${lesion.id === activeId}">
     ${lesion.id === activeId ? "● " : ""}${escape(lesion.label)}<small>Instance ${lesion.instance} · ${lesion.regions.length} regions · ${lesion.excluded ? "excluded" : lesion.reviewed ? "reviewed" : "unreviewed"}</small><small>${escape(sectionSummary(lesion))}</small></button>`).join("");
@@ -278,23 +300,31 @@ function render() {
   $("lesion-status").textContent = active().excluded
     ? `Excluded from CSV: ${active().exclusionReason}. Original findings are preserved. Restore to edit and review again.`
     : `Editing ${active().label} · ${sectionSummary(active())}. Other lesions are unchanged.`;
-  renderMap(); renderRegion(); renderFields(); renderObservations(); renderIssues(); renderReadiness();
+  renderMap(); renderRegion(); renderFields(); renderObservations(); renderIssues(); renderSurgery(); renderMatching(); renderReadiness();
 }
 
 function audit(action, details) {
-  state.reviewLog.push({ at: new Date().toISOString(), actor: "local showcase user (not authenticated)", lesionId: activeId, action, details });
+  state.reviewLog.push({ at: new Date().toISOString(), actor: $("reviewer").value.trim() || "local reviewer (not authenticated)", lesionId: activeId, action, details });
 }
 
 function edit(update, action, details, dataChange = true) {
   update(active());
-  if (dataChange) for (const issue of active().issues) {
+  if (dataChange && state.caseIssues) {
+    for (const issue of state.caseIssues) {
+      if (issue.severity === "info") continue;
+      issue.resolved = false;
+      delete issue.disposition;
+      issue.reopenedReason = "Recheck after a clinical edit. The earlier decision is retained.";
+    }
+  }
+  if (dataChange) for (const issue of active()?.issues || []) {
     if (issue.resolved) {
       issue.resolved = false;
       delete issue.disposition;
       issue.reopenedReason = "Reopened after a value or region edit. Recheck this decision; the earlier reason is retained.";
     }
   }
-  active().reviewed = false;
+  if (active()) active().reviewed = false;
   audit(action, details);
   save();
   render();
@@ -384,7 +414,7 @@ function requestDecision(options) {
   $("change-description").textContent = options.description;
   $("change-error").hidden = true;
   $("change-evidence").hidden = options.evidence === false;
-  const sources = [["report-text", "Illustrative report text (not the displayed scan)"], ["report-image", "Report scan crop"]];
+  const sources = [["report-text", state.showcase ? "Illustrative report text (not the displayed scan)" : "Pinned report text"], ["report-image", "Report scan crop"]];
   if (!options.reportOnly) sources.push(["drawing-image", "Drawing scan crop"]);
   if (options.allowAbsent) sources.push(["absent", "Absent / not reported — no positive finding"]);
   $("change-source").replaceChildren(...sources.map(([value, label]) => new Option(label, value)));
@@ -572,7 +602,7 @@ document.addEventListener("change", (event) => {
     const value = target.value;
     if (!confirm(`Save this issue decision / reason?\n${value}`)) { render(); return; }
     edit((lesion) => {
-      const issue = lesion.issues.find((item) => item.id === id);
+      const issue = [...(lesion?.issues || []), ...(state.caseIssues || [])].find((item) => item.id === id);
       issue.resolution = value;
       issue.resolved = false;
       delete issue.disposition;
@@ -583,7 +613,7 @@ document.addEventListener("change", (event) => {
     const disposition = target.value;
     if (!confirm(`Change this issue's outcome to "${target.selectedOptions[0].textContent}"?\nUnknown values are never filled automatically. Sector checkboxes cannot represent unknown.`)) { render(); return; }
     edit((lesion) => {
-      const issue = lesion.issues.find((item) => item.id === id);
+      const issue = [...(lesion?.issues || []), ...(state.caseIssues || [])].find((item) => item.id === id);
       issue.resolved = disposition !== "unresolved";
       if (issue.resolved) { issue.disposition = disposition; delete issue.reopenedReason; }
       else delete issue.disposition;
@@ -621,7 +651,7 @@ async function sha256(bytes) {
 
 async function displayScan(role) {
   const source = caseConfig.sources[role];
-  const response = await loadLocal(source.url);
+  const response = source.file ? new Response(source.file) : await loadLocal(source.url);
   const bytes = await response.arrayBuffer();
   if (await sha256(bytes) !== source.sha256) throw new Error("A source scan changed; prepare the showcase again before reviewing.");
   const image = document.createElement("img");
@@ -639,8 +669,169 @@ async function displayScan(role) {
   imageSizes[role] = { width: image.naturalWidth, height: image.naturalHeight };
 }
 
+function renderSurgery() {
+  if (!state.surgery) return;
+  $("surgery-fields").innerHTML = SURGERY_FIELDS.map(field => {
+    const value = state.surgery.values[field.name] ?? "";
+    const input = field.choices
+      ? `<select data-surgery-field="${field.name}"><option value="">Not supplied</option>${field.choices.map(([code, label]) => `<option value="${code}" ${value === code ? "selected" : ""}>${escape(label)}</option>`).join("")}</select>`
+      : field.type === "textarea" ? `<textarea data-surgery-field="${field.name}">${escape(value)}</textarea>`
+      : `<input data-surgery-field="${field.name}" type="${field.type}" value="${escape(value)}" ${field.type === "number" ? `min="${field.min}" max="${field.max}" step="1"` : field.type === "date" ? `min="1900-01-01" max="${new Date().toISOString().slice(0, 10)}"` : ""}>`;
+    const origin = state.surgery.valueEvidence?.[field.name] ? "Doctor entry" : prediction.surgery.values[field.name] ? "From specimen assessment" : "Not reported";
+    return `<label>${escape(field.label)}${field.required ? " *" : ""}${input}<small>${origin}${field.when ? ` · applies when ${field.when.join(" = ")}` : ""}</small></label>`;
+  }).join("");
+  $("confirm-surgery").checked = state.surgery.reviewed;
+  $("specimen-observations").innerHTML = state.surgery.sourceObservations.map(p => `<article><strong>${escape(p.property)}</strong><p>${escape(p.status)} · ${escape(p.basis)} · ${escape(p.disposition)}</p><p>${escape(p.value?.original_wording || p.unavailable_reason || "No selected value")}</p>${(p.evidence || []).map(e => `<blockquote>${escape(e.quotation || "Image evidence")}</blockquote>`).join("")}${p.candidates?.length ? `<pre class="alternative-values">${escape(JSON.stringify(p.candidates, null, 2))}</pre>` : ""}</article>`).join("");
+}
+
+function renderMatching() {
+  if (state.sourceBinding !== "pinned-combined") return;
+  $("jump-questions").textContent = `Case questions · ${state.caseIssues.filter(i => i.severity !== "info" && !i.resolved).length}`;
+  $("case-question-count").textContent = `${state.caseIssues.filter(i => i.severity !== "info" && !i.resolved).length} questions`;
+  $("rerun-status").textContent = state.needsRerun ? " Matching decisions pending. Rerun central and open its new output before exporting CSV." : "";
+  const raw = state.sourceAnalysis;
+  $("matching-review").innerHTML = raw.candidates.map(candidate => `<article><p><strong>${escape(candidate.id)}</strong> · ${escape(candidate.source)}</p>${candidate.marks.map(mark => {
+    const owner = raw.lesions.find(l => l.marks?.includes(mark));
+    return `<label>${escape(mark)} · current: ${escape(owner?.focus || "unmatched")}<select data-mark-assignment="${escape(mark)}"><option value="">Choose a report focus</option>${raw.lesions.filter(l => l.focus).map(l => `<option value="${escape(l.focus)}">${escape(l.focus)}</option>`).join("")}</select></label>${owner?.focus ? `<button data-reject-mark="${escape(mark)}" data-focus="${escape(owner.focus)}">Reject this membership</button>` : ""}`;
+  }).join("")}<button data-reject-group="${escape(candidate.source)}" ${candidate.source.startsWith("group:") ? "" : "hidden"}>Reject drawing group</button></article>`).join("");
+}
+
+async function openCombined(config, raw, reportBytes, drawingBytes, scans) {
+  const map = sectors || await (await fetch("assets/sectors.json")).json();
+  const nextPrediction = await adaptCombined(raw, map, { reportBytes, drawingBytes });
+  const report = nextPrediction.sourceReport, drawing = nextPrediction.sourceDrawing;
+  const base = config.analysisUrl ? config.analysisUrl.slice(0, config.analysisUrl.lastIndexOf("/") + 1) : "";
+  config.sources = {
+    report: { url: base + "report.jpg", sha256: report.document.source_sha256, ...(scans ? { file: scans.report } : {}) },
+    drawing: { url: base + "drawing.jpg", sha256: drawing.extraction.source_sha256, ...(scans ? { file: scans.drawing } : {}) },
+  };
+  // Verify both scan hashes before replacing the current review.
+  const nextSizes = {};
+  for (const role of ["report", "drawing"]) {
+    const data = scans ? await scans[role].arrayBuffer() : await (await loadLocal(config.sources[role].url)).arrayBuffer();
+    if (await digest(data) !== config.sources[role].sha256) throw new Error(`The ${role} scan does not match its extraction hash.`);
+    const bitmap = await createImageBitmap(new Blob([data]));
+    nextSizes[role] = { width: bitmap.width, height: bitmap.height };
+    bitmap.close();
+  }
+  const fingerprint = await digest(JSON.stringify({ raw, adapter: nextPrediction.schemaVersion }));
+  const nextKey = `prostapaper.review.combined.v1.${raw.case_id}.${fingerprint}`;
+  const saved = localStorage.getItem(nextKey);
+  const nextState = saved ? JSON.parse(saved) : structuredClone(nextPrediction);
+  if (!validSavedReview(nextState, nextPrediction, map, { reportText: nextPrediction.reportText, sources: config.sources, imageSizes: nextSizes })) throw new Error("Saved review is incompatible. Download it before resetting this case.");
+  const previousConfig = caseConfig;
+  caseConfig = config;
+  try { await Promise.all(["drawing", "report"].map(displayScan)); }
+  catch (error) { caseConfig = previousConfig; throw error; }
+  sectors = map; prediction = nextPrediction; state = nextState; storageKey = nextKey;
+  regionUndo.length = 0;
+  activeId = state.lesions[0]?.id;
+  regionCode = state.lesions[0]?.regions[0] || sectors[0].code;
+  $("case-title").textContent = `Case ${raw.case_id.slice(0, 8)}`;
+  $("case-code").textContent = raw.case_id;
+  $("identity-status").textContent = "Report, drawing and source scan hashes verified. Enter the REDCap target separately.";
+  $("case-origin").textContent = config.label || "Combined assessment from pinned report and drawing extractions. Doctor review required.";
+  $("record-label").textContent = "Target REDCap record ID";
+  $("record-help").textContent = "Enter the registry ID. The case UUID is not a patient identity. No upload.";
+  $("record-id").disabled = false;
+  $("record-id").placeholder = "CMP-0000000";
+  $("reset-demo").textContent = "Reset case review";
+  $("download-json").disabled = false;
+  $("export-csv").textContent = "Export reviewed CSV";
+  $("download-decisions").hidden = false;
+  $("central-review").hidden = false;
+  $("jump-questions").hidden = false;
+  $("surgery-panel").hidden = false;
+  $("central-details").textContent = JSON.stringify({ details: raw.details, other_findings: raw.other_findings, matching: raw.matching, brains: raw.brains }, null, 2);
+  $("analysis-report").textContent = prediction.reportText;
+  document.querySelector(".text-warning").textContent = "Immutable text layer from the pinned report extraction.";
+  document.querySelector(".source-note").textContent = "Switch between the source drawing, report scan and its extracted text. Zoom to inspect the evidence.";
+  document.querySelector("#change-evidence > p").textContent = "Cite a report span or source-image crop. Inferred decisions retain their reasoning.";
+  $("change-quote-label").firstChild.textContent = "Exact quotation from the pinned report text";
+  $("export-boundary").textContent = "First-import surgery and lesion draft. Identity forms and existing-record corrections are not generated. Exclusions remain in review JSON. Form status stays incomplete. Live REDCap import has not been verified.";
+  $("analysis-json-source").href = config.analysisUrl || URL.createObjectURL(new Blob([JSON.stringify(raw)], { type: "application/json" }));
+  $("analysis-json-source").hidden = false;
+  $("save-status").textContent = saved ? "Restored local review" : "Pinned assessment loaded";
+  notify("");
+  if (!activeId) {
+    document.querySelector(".map-panel").hidden = true;
+    document.querySelector(".review-panel").hidden = true;
+    $("case-issues").innerHTML = issueMarkup(state.caseIssues);
+    renderSurgery(); renderMatching(); renderReadiness();
+    notify("No lesion interpretations. Inspect the case questions; unmatched ink does not create a lesion.");
+    return;
+  }
+  document.querySelector(".map-panel").hidden = false;
+  document.querySelector(".review-panel").hidden = false;
+  render();
+}
+
+$("case-picker").addEventListener("change", event => {
+  const url = new URL(location.href); url.searchParams.set("case", event.target.value); location.href = url;
+});
+$("import-case").addEventListener("submit", async event => {
+  event.preventDefault();
+  const form = event.currentTarget, button = form.querySelector("button");
+  button.disabled = true;
+  try {
+    const file = name => form.elements.namedItem(name).files[0];
+    const [raw, reportBytes, drawingBytes] = await Promise.all([file("combined").text().then(JSON.parse), file("report").arrayBuffer(), file("drawing").arrayBuffer()]);
+    await openCombined({ mode: "combined", sourceBinding: "pinned-combined", caseId: raw.case_id, label: "Local combined assessment. Inputs and scans verified against pinned hashes." }, raw, reportBytes, drawingBytes, { report: file("reportScan"), drawing: file("drawingScan") });
+    form.closest("details").open = false;
+  } catch (error) { notify(error.message); }
+  finally { button.disabled = false; }
+});
+document.addEventListener("change", event => {
+  if (!state) return;
+  const target = event.target;
+  if (target.dataset.surgeryField) {
+    const field = target.dataset.surgeryField, value = target.value;
+    if (value === (state.surgery.values[field] ?? "")) return;
+    requestDecision({ title: `Set ${SURGERY_FIELDS.find(f => f.name === field).label}?`, description: "This changes the surgery record. State where the value comes from and why it is appropriate.", evidence: false,
+      apply({ reason }) { state.surgery.values[field] = value; state.surgery.valueEvidence[field] = { reason, at: new Date().toISOString() }; state.surgery.reviewed = false; audit("surgery-edit", { field, value, reason }); save(); render(); },
+    });
+  }
+  if (target.id === "confirm-surgery") { state.surgery.reviewed = target.checked; audit("surgery-confirmation", { reviewed: target.checked }); save(); renderReadiness(); }
+  if (target.dataset.markAssignment && target.value) queueMatchingDecision("assign_mark", { focus: target.value, mark: target.dataset.markAssignment });
+});
+function queueMatchingDecision(kind, target) {
+  if (!$("reviewer").value.trim()) { notify("Enter a reviewer name before changing matching decisions."); return; }
+  requestDecision({ title: "Save matching decision for central rerun?", description: `${kind}: ${JSON.stringify(target)}. Download decisions and rerun central to recompute sectors, confidence and flags. CSV export will be blocked.`, evidence: false,
+    apply({ reason }) {
+      state.centralDecisions.push({ id: crypto.randomUUID(), kind, target, value: null, reviewer: $("reviewer").value.trim(), timestamp: new Date().toISOString(), reason });
+      state.needsRerun = true; state.lesions.forEach(l => { l.reviewed = false; });
+      audit("matching-decision", { kind, target, reason }); save(); render();
+    },
+  });
+}
+document.addEventListener("click", event => {
+  const reject = event.target.closest("[data-reject-mark], [data-reject-group]");
+  if (!state || !reject) return;
+  if (reject.dataset.rejectMark) queueMatchingDecision("reject_membership", { focus: reject.dataset.focus, mark: reject.dataset.rejectMark });
+  else queueMatchingDecision("reject_group", { group: reject.dataset.rejectGroup });
+});
+$("download-decisions").addEventListener("click", () => {
+  try { download(JSON.stringify(buildCentralDecisions(state, { reviewer: $("reviewer").value }), null, 2), "decisions.json", "application/json"); }
+  catch (error) { notify(error.message); }
+});
+
 async function start() {
-  caseConfig = await (await loadLocal(".local-data/case.json")).json();
+  const listResponse = await fetch(".local-data/combined/cases.json");
+  if (listResponse.ok) {
+    const entries = await listResponse.json();
+    $("case-picker").replaceChildren(...entries.map(item => new Option(item.label, item.url)));
+    $("case-picker-label").hidden = false;
+  }
+  const requested = new URLSearchParams(location.search).get("case");
+  const configUrl = requested || $("case-picker").value || ".local-data/case.json";
+  $("case-picker").value = configUrl;
+  caseConfig = await (await loadLocal(configUrl)).json();
+  if (caseConfig.mode === "combined") {
+    const [raw, reportBytes, drawingBytes] = await Promise.all([
+      loadLocal(caseConfig.analysisUrl).then(r => r.json()), loadLocal(caseConfig.reportUrl).then(r => r.arrayBuffer()), loadLocal(caseConfig.drawingUrl).then(r => r.arrayBuffer()),
+    ]);
+    return openCombined(caseConfig, raw, reportBytes, drawingBytes);
+  }
   if (caseConfig.mode !== "showcase" || caseConfig.sourceBinding !== "showcase-unlinked") throw new Error("Only the explicitly unlinked showcase configuration is supported.");
   const responses = await Promise.all([fetch("assets/sectors.json"), loadLocal(caseConfig.analysisUrl), loadLocal(caseConfig.reportTextUrl)]);
   if (responses.some((response) => !response.ok)) throw new Error("Sector or analysis assets could not be loaded.");
@@ -689,3 +880,5 @@ start().catch((error) => {
   $("download-json").disabled = true;
   notify(`${error.message} No export is available.`);
 });
+
+$("jump-questions").addEventListener("click", () => $("central-review").scrollIntoView({ block: "start" }));

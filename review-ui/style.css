@@ -175,3 +175,28 @@ footer { text-align: center; padding: 10px 20px 25px; color: #7a8f96; font-size:
 @media (max-width: 1100px) { main { padding: 18px; } .linked-views { grid-template-columns: repeat(2, minmax(0, 1fr)); } .linked-view[data-level=sv] { grid-column: auto; } .linked-view[data-level=urethra] { grid-column: 1 / -1; } }
 @media (max-width: 420px) { .linked-views { grid-template-columns: 1fr; } .linked-view[data-level=urethra] { grid-column: auto; } .linked-view .region-map { height: 145px; } .linked-view.compact .region-map { height: 55px; } }
 @media (max-width: 760px) { .topbar, .casebar { align-items: flex-start; flex-direction: column; } .actions { width: 100%; } .actions button { font-size: 11px; } .casebar label { width: 100%; margin: 0; } .workspace { grid-template-columns: 1fr; } .sources { position: static; } .source-viewport { height: 70vh; min-height: 360px; } main { padding: 12px; } .topbar { padding: 16px; } }
+
+/* Assessment loading, case questions and specimen review share the existing palette. */
+::selection { background: #bedfda; color: #20343c; }
+input, textarea { caret-color: #126f6d; }
+a { text-underline-offset: .18em; }
+.case-loader { display: flex; flex-wrap: wrap; gap: 20px; align-items: start; padding: 18px 0; border-bottom: 1px solid #c8d3d7; }
+.case-loader > label { min-width: 220px; flex: 1; }
+.case-loader > details { flex: 2; min-width: 250px; padding: 8px 0; }
+.case-loader p { margin-top: 12px; line-height: 1.6; }
+#import-case { display: grid; gap: 12px; }
+#import-case input[type=file] { max-width: 100%; font-size: 12px; }
+
+.central-panel .issue { scroll-margin-top: 20px; }
+.section-help { padding: 16px 16px 0; line-height: 1.6; }
+.surgery-fields { padding: 0 16px 20px; }
+.alternative-values { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; line-height: 1.5; max-height: 320px; overflow: auto; }
+#matching-review article { padding: 12px 0; border-bottom: 1px solid #c8d3d7; }
+#matching-review label { margin-bottom: 12px; }
+#matching-review button { margin-bottom: 12px; }
+.issues-section, #rerun-status { overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .case-loader { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .case-loader > label, .case-loader > details { min-width: 0; }
+  .field-grid input, .field-grid select, .field-grid textarea, .issue textarea, .issue select { font-size: 16px; }
+}
