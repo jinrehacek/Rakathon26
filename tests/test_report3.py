@@ -150,3 +150,13 @@ def test_doctor_confirmation_accepts_specimen_proposal_and_keeps_source(tmp_path
     prop=next(p for p in reviewed['lesions'][0]['properties'] if p['property']=='extraprostatic_extension')
     assert prop['review_status']=='accepted' and prop['requires_confirmation'] is False
     assert prop['source_assessment']['requires_confirmation'] is True
+
+
+def test_total_only_gleason_still_participates_in_grade_consistency(tmp_path):
+    from central.checks import run_checks
+    _,report,_=case(tmp_path)
+    record(report,'f1','gleason_score',{'type':'gleason_score','total':6,'original_wording':'GS 6'})
+    record(report,'f1','grade_group',{'type':'coded','code':'3','original_wording':'GG 3'})
+    issues=run_checks(report,[],[])
+    assert any(i['rule']['id']=='isup-grade-group' and 'f1' in i['context'] for i in issues)
+    assert all('None' not in i['reason'] for i in issues)
