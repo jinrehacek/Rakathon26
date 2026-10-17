@@ -9,7 +9,7 @@ This is a 24-hour hackathon. A working end-to-end slice beats a polished partial
 - `Other/` is not git-ignored. The current anonymised hackathon scans are tracked in Git.
 - Keep research files in `Other/research/`. Keep the image pipeline proposal in `Other/IMAGE_PIPELINE.md` and the current image pipeline spec in `Other/IMAGE-PIPELINE-SPEC.md`.
 - Keep identifiable production records, patient-linked extracted text and model output, and tokens out of Git. Add a new local data or output folder to `.gitignore` before the first write.
-- Send a scan or extracted text to an external model or service only when the user has said so in the current session. Local processing is fine.
+- The current anonymised hackathon scans and their extracted text may be sent to Google (Gemini) without asking. Send them to any other external model or service only when the user has said so in the current session. Local processing is fine.
 
 ## Schema
 
