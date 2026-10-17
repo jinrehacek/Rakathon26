@@ -184,7 +184,7 @@ def build_interpretation(report: dict, drawing: dict, candidates: list[dict], ma
     if count_obs and count_obs["value"]["value"] != len(lesions):
         issues.append(issue("count_mismatch", "question", ["report:" + count_obs["id"]] + [lesion["id"] for lesion in lesions],
                             f"Report count {count_obs['value']['value']} differs from {len(lesions)} interpreted lesions."))
-    if matching.get("certainty") == "low" and not matching.get("fixed_assignment") and foci:
+    if matching.get("certainty") == "low" and matching.get("runner_up_assignment") is not None and foci:
         issues.append(issue("ambiguous_assignment", "question", [hyp["id"] for hyp in matching["hypotheses"]],
                             "The best and runner-up assignments differ by less than one point.",
                             alternatives=[matching["best_assignment"], matching.get("runner_up_assignment")],

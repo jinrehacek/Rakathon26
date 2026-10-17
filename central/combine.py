@@ -78,7 +78,8 @@ def combine(interpretation: dict, matching: dict, llm: dict, *, touched: set[str
                        "raised_by": ["llm"], "status": "open"})
         return result, matches
 
-    lesions = {lesion.get("focus", lesion.get("source_subject")): lesion for lesion in result["lesions"]}
+    lesions = {lesion.get("focus") or lesion.get("source_identity") or lesion.get("source_subject") or lesion["id"]:
+               lesion for lesion in result["lesions"]}
     rules_assignments = {}
     for hypothesis in matches.get("hypotheses", []):
         rules_assignments[hypothesis["focus"]] = {

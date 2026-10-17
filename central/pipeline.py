@@ -141,12 +141,13 @@ def run_case(case_id: str, *, root: Path | None = None, report_path: Path | None
 
     previous, previous_run = None, None
     prior_path = previous_path or case_dir / "latest/combined.json"
-    if prior_path.exists() and decision_snapshot:
+    if prior_path.exists():
         prior_file, prior_bytes = _snapshot(prior_path)
-        previous = CombinedOutput.model_validate_json(prior_bytes).model_dump(mode="json")
-        if previous["case_id"] != case_id:
+        prior = CombinedOutput.model_validate_json(prior_bytes).model_dump(mode="json")
+        if prior["case_id"] != case_id:
             raise ValueError("previous run belongs to another case")
-        previous_run = prior_file.parent.name
+        if decision_snapshot or prior.get("decisions_history") or prior["decisions_applied"]:
+            previous, previous_run = prior, prior_file.parent.name
     same_inputs = bool(previous and previous["inputs"]["report"]["sha256"] == report_hash
                        and previous["inputs"]["drawing"]["sha256"] == drawing_hash)
     if previous:
@@ -168,7 +169,7 @@ def run_case(case_id: str, *, root: Path | None = None, report_path: Path | None
                                                       history=decision_history)
     prior_rules_matching = previous["brains"]["rules"].get("matching", previous["matching"]) if same_inputs else None
     touched, decision_issues, applied = set(), [], []
-    rerun = bool(previous and decision_snapshot)
+    rerun = previous is not None
     if decisions or same_inputs:
         baseline = previous if same_inputs else {"matching": matching, "candidates": candidates}
         candidates, fixed, touched, decision_issues, applied = prepare_assignments(

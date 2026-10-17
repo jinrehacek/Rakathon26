@@ -69,6 +69,8 @@ To edit the sector set, use `set_value` with `target.property` set to `sectors`.
 
 With unchanged input hashes, reruns fix prior assignments and apply the decisions. Rejected groups invalidate dependent memberships. With changed hashes, central starts a new matching attempt and retains decisions whose targets still exist. Missing targets raise information issues. Reruns retain the earlier LLM result as `before_decisions` and make no new model call. Reviewed targets use rules confidence; an LLM reading of changed inputs contributes only to history.
 
+Once a run contains review history, removing or emptying `decisions.json` preserves that history and its fixed assignments. Change a reviewed assignment with a new decision. An unchanged ambiguous assignment retains its alternatives and review question until the doctor resolves it.
+
 ## Verification and probe
 
 ```sh

@@ -357,6 +357,12 @@ def match(report: dict, candidates: list[dict], *,
             raise ValueError("a drawing mark cannot belong to multiple assignments")
         best_score, runner, runner_score = assignment_score(best), None, None
         certainty = "medium"
+        if previous_matching and best == previous_matching.get("best_assignment"):
+            certainty = previous_matching["certainty"]
+            previous_runner = previous_matching.get("runner_up_assignment")
+            if previous_runner and all((focus, cid) in pairs for focus, ids in previous_runner.items() for cid in ids):
+                runner = {focus: list(ids) for focus, ids in previous_runner.items()}
+                runner_score = assignment_score(runner)
     else:
         options = [[]] + [[cid] for cid in index]
         for first, second in combinations(candidates, 2):
@@ -386,11 +392,11 @@ def match(report: dict, candidates: list[dict], *,
         search(0, {}, set(), set(), 0.0)
         best_score, best = top[0]
         runner_score, runner = top[1] if len(top) > 1 else (None, None)
-        explicit = bool(best) and all(
-            ids and location(report, fid)["laterality"] and all(
+        explicit = any(best.values()) and all(
+            location(report, fid)["laterality"] and all(
                 index[cid]["side_basis"] == "explicit"
                 and sides_compatible(location(report, fid)["laterality"], set(index[cid]["sides"])) for cid in ids)
-            for fid, ids in best.items())
+            for fid, ids in best.items() if ids)
         certainty = matching_confidence(best_score, runner_score, explicit)
 
     hypotheses, comparisons = [], []

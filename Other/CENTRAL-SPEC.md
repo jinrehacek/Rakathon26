@@ -439,6 +439,8 @@ Follows MATCHING.md and ASSESSMENT.md, with support contributions folded into `s
 
 The UI saves the doctor's changes in `decisions.json`. Each entry has an ID, a kind (for example `assign_mark`, `reject_membership`, `set_value`, `resolve_issue`), its target, the new value, the reviewer, a timestamp and a reason.
 
+Decisions already saved in a combined run remain part of its review history if `decisions.json` is removed or emptied. Reversing a reviewed choice requires a new decision; removing the input file does not undo it.
+
 A re-run after a decision:
 
 1. Loads the previous `combined.json` and `decisions.json`. If the report or drawing hash differs from the previous run's pinned inputs, it does a fresh run instead (MATCHING.md asks for a new attempt when inputs change) and re-applies only the decisions whose targets still exist. Decisions whose targets are gone become `info` issues.
