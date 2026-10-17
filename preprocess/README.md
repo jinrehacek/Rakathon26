@@ -1,8 +1,13 @@
 # JPG preprocessing MVP
 
-One script, local Tesseract, Pillow. No UI, database, PDF handling, or network API.
+One script using local Tesseract and Pillow. No UI, database, PDF handling, or network API.
 For the supplied **artificial** hackathon scans only. Output is unreviewed and
 pseudonymized, not guaranteed anonymous.
+
+Python 3.12 and `uv` manage the environment. Pillow handles image work; the
+standard library writes the manifest, private dictionary and random case IDs.
+Dependencies are declared in [pyproject.toml](pyproject.toml) and locked in
+[uv.lock](uv.lock).
 
 ## Run
 
@@ -13,6 +18,18 @@ cd preprocess
 uv sync --python 3.12
 uv run python -I preprocess.py ../Other/data --artificial-data
 ```
+
+## Platform support
+
+Install Tesseract separately from Python. This script uses English data (`eng`)
+and has no language-selection option. The Python lockfile does not pin the
+Tesseract engine or its language data.
+
+- macOS: `brew install tesseract`
+- Debian or Ubuntu: `sudo apt install tesseract-ocr`
+- Windows: use the [Tesseract installation guide](https://tesseract-ocr.github.io/tessdoc/Installation.html) and add its binary directory to `PATH`.
+
+The recorded run was on macOS. Linux and Windows have not been validated.
 
 The script reads JPG/JPEG files recursively; originals are never modified.
 It reads printed Rakathon IDs using local OCR, pairs one report with one drawing
@@ -52,6 +69,8 @@ Keep `.preprocess-private/` local:
 Both directories are git-ignored before any output is written. The private
 mapping is plaintext, not encrypted: never share or sync it. Existing SQLite
 outputs from the earlier prototype are not used or deleted.
+The script checks with Git that these directories are ignored and untracked
+before writing.
 
 Removing recognized IDs is not a guarantee that all identifying text is removed.
 TODO for a later version: broader sensitive-information checks and manual review.
@@ -83,7 +102,15 @@ relationship for manual lookup. Keep the dictionary: the random UUID does not
 encode the original ID, so losing the dictionary loses the back-matching.
 Automatic merging of downstream results is not implemented.
 
-## Small synthetic check
+## Synthetic checks
+
+The five checks cover identifier parsing, drawing classification, redaction
+pixels, stable pair exports, and links from the private comparison page. A prior
+local run on 80 artificial JPGs produced 37 pairs. All 37 pairings agreed with
+filename numbers, and six images were excluded. This checks pairing against a
+filename proxy only. It does not establish complete identifier removal or
+anonymity. Investigating the excluded images and testing small rotation/skew
+cases remain follow-up work.
 
 ```sh
 uv run python -I -m unittest discover -s tests

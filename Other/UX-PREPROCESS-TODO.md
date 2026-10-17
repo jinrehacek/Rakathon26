@@ -83,7 +83,7 @@ This is not proof of complete de-identification or production readiness.
 
 ## ID round-trip: must not break
 
-- [ ] Preserve the private [ID dictionary](preprocess/.preprocess-private/dictionary.json)
+- [ ] Preserve the private [ID dictionary](../preprocess/README.md#handoff)
   securely. It is plaintext and must not be shared with the analysis batch.
 - [ ] Keep the random `case_id` unchanged through extraction, matching and UI.
 - [ ] Test the full round-trip on several cases: original printed ID -> paired
@@ -105,6 +105,6 @@ This is not proof of complete de-identification or production readiness.
 - Display labels now use atlas lettering: **AFS, PZa, PZpl, PZpm, TZa, TZp, CZ**.
   Export codes, raw source titles and the canonical polygon geometry are unchanged.
 
-See [preprocessing usage](preprocess/README.md),
-[review UI usage](review-ui/README.md) and
-[REDCap specification](Other/redcap/REDCAP.md).
+See [preprocessing usage](../preprocess/README.md),
+[review UI usage](../review-ui/README.md) and
+[REDCap specification](redcap/REDCAP.md).

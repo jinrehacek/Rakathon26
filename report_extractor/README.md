@@ -1,6 +1,9 @@
-# Rakathon26
+# Report extractor
 
 ## Offline text-report extraction prototype
+
+Run all commands in this guide from the repository root. Paths such as
+`fixtures/`, `prompts/`, and `Other/output/` are relative to that directory.
 
 This prototype accepts one UTF-8 plain-text report or one JPEG/PNG report image. Image inputs are processed locally with Tesseract and Czech `ces` data. PDFs, multi-page documents, drawings, matching, export, and interactive review are out of scope.
 
