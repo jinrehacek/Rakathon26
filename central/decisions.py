@@ -82,7 +82,7 @@ def bind_property_targets(decisions: list[dict], current: dict, previous: dict |
             earlier = prior_decisions.get(decision["id"], {}).get("target", {})
             old_lesion = old.get(target["lesion"], {})
             focus = (target.get("focus") or earlier.get("focus") or old_lesion.get("focus")
-                     or target.get("mark") or earlier.get("mark") or old_lesion.get("source_subject"))
+                     or target.get("mark") or earlier.get("mark") or old_lesion.get("source_identity") or old_lesion.get("source_subject"))
             lesion = current_by_focus.get(focus)
             if not lesion:
                 issues.append({"kind": "other", "severity": "info", "context": [decision["id"]],
@@ -95,7 +95,7 @@ def bind_property_targets(decisions: list[dict], current: dict, previous: dict |
 
 
 def prepare_assignments(report: dict, drawing: dict, candidates: list[dict], previous: dict,
-                        decisions: list[dict], *, fresh: bool = False) -> tuple[list[dict], dict, set[str], list[dict], list[dict]]:
+                        decisions: list[dict]) -> tuple[list[dict], dict, set[str], list[dict], list[dict]]:
     """Keep previous marks fixed. Split a candidate only when a review changes its members."""
     marks = {mark["id"] for mark in drawing["marks"]}
     foci = {subject["id"] for subject in report["extraction"]["subjects"] if subject["kind"] == "tumour_focus"}
@@ -258,7 +258,8 @@ def apply_interpretation_decisions(result: dict, decisions: list[dict], *,
                     raise ValueError("sector override requires known REDCap codes in a typed in/maybe set")
                 prior = sources[lesion["id"]]["sectors"]
                 lesion["sectors"] = {"in": sorted(set(selected["in"])), "maybe": sorted(set(selected["maybe"]) - set(selected["in"])),
-                                     "status": "recorded", "basis": "explicit", "disposition": "adopted",
+                                     "status": "recorded", "basis": "inferred", "disposition": "adopted",
+                                     "tags": ["reviewer selection"], "rationale": decision["reason"],
                                      "review_status": "accepted", "supports": ["decision:" + decision["id"]], "opposes": [],
                                      "source_assessment": deepcopy(prior), "decision": decision["id"],
                                      "confidence": {"rules": "unassessed", "final": "unassessed", "explanations": [decision["reason"]]}}
@@ -273,12 +274,16 @@ def apply_interpretation_decisions(result: dict, decisions: list[dict], *,
             status, value = validate_override(target["property"], decision["value"])
             source_prop = next((p for p in sources[lesion["id"]]["properties"] if p["property"] == target["property"]), prop)
             prop["source_assessment"] = deepcopy(source_prop)
-            prop.update(status=status, value=value, basis="explicit",
+            for field in ("unavailable_reason", "source_certainty", "evidence_ids", "derived_from", "source_inputs"):
+                prop.pop(field, None)
+            prop.update(status=status, value=value, basis="inferred", tags=["reviewer selection"],
                         disposition="adopted" if value else "not applicable" if status == "not applicable" else "unavailable",
                         review_status="accepted", decision=decision["id"], rationale=decision["reason"],
                         confidence={"rules": "unassessed", "final": "unassessed",
                                     "explanations": ["Reviewer selection; no new source evidence."]})
-            prop["supports"] = [*prop.get("supports", []), "decision:" + decision["id"]]
+            prop["supports"] = ["decision:" + decision["id"]]
+            if status != "recorded":
+                prop["unavailable_reason"] = decision["reason"]
             touched.update({lesion["id"], lesion.get("focus", "")})
             applied.append(decision)
         elif decision["kind"] == "resolve_issue":

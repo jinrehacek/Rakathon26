@@ -1,6 +1,7 @@
 """Public workflow checks use synthetic findings and an injected external brain."""
 
 import json
+import hashlib
 import tempfile
 import unittest
 from copy import deepcopy
@@ -88,6 +89,9 @@ class ReviewTests(unittest.TestCase):
         prop = changed["lesions"][0]["properties"][0]
         self.assertEqual(prop["value"]["code"], "3")
         self.assertEqual(prop["source_assessment"]["value"]["code"], "2")
+        self.assertEqual(prop["basis"], "inferred")
+        self.assertEqual(prop["supports"], ["decision:d1"])
+        self.assertEqual(prop["tags"], ["reviewer selection"])
         self.assertEqual(result["lesions"][0]["properties"][0], original)
         self.assertEqual(touched, {"L1", "f1"})
 
@@ -99,6 +103,19 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(result["issues"][0]["status"], "resolved")
         self.assertEqual(identify_issues(result["issues"])[0]["id"], identified["id"])
         self.assertEqual(result["issues"][0]["decision"]["reviewer"], "synthetic-reviewer")
+
+    def test_reviewed_value_clears_unavailable_source_metadata(self):
+        original = {"property": "grade_group", "status": "not reported", "value": None,
+                    "basis": "explicit", "supports": [], "opposes": [], "tags": ["single source"],
+                    "unavailable_reason": "Not stated", "evidence_ids": [], "derived_from": [],
+                    "source_certainty": {"extraction": "high"}, "confidence": {"final": "unassessed"}}
+        entry = decision("set_value", {"lesion": "L1", "property": "grade_group"},
+                         {"value": {"type": "coded", "code": "3", "original_wording": "review selection"}})
+        changed, _, _ = apply_interpretation_decisions({"lesions": [{"id": "L1", "properties": [original]}], "issues": []}, [entry])
+        prop = changed["lesions"][0]["properties"][0]
+        self.assertEqual(prop["source_assessment"], original)
+        for field in ("unavailable_reason", "source_certainty", "evidence_ids", "derived_from"):
+            self.assertNotIn(field, prop)
 
 
 class PipelineTests(unittest.TestCase):
@@ -124,6 +141,36 @@ class PipelineTests(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps({"schema_version": "decisions-1", "decisions": entries}))
 
+    def count_only_report(self):
+        report = json.loads(self.report_file.read_text())
+        text = "Syntetický vzorek. Dvě ložiska."
+        report["text_layer"]["text"] = text
+        report["text_layer"]["text_sha256"] = hashlib.sha256(text.encode()).hexdigest()
+        report["extraction"]["evidence"][0].update(quotation=text, end_offset=len(text))
+        report["extraction"]["subjects"] = report["extraction"]["subjects"][:1]
+        for collection in ("observations", "coverage"):
+            report["extraction"][collection] = [item for item in report["extraction"][collection] if item["subject_id"] == "specimen"]
+        count = next(o for o in report["extraction"]["observations"] if o["property"] == "reported_lesion_count")
+        count.update(status="recorded", evidence_ids=["e1"],
+                     value={"type": "quantity", "value": 2, "unit": None, "approximate": False, "original_wording": "Dvě ložiska"})
+        count.pop("unavailable_reason")
+        self.report_file.write_text(json.dumps(report, ensure_ascii=False))
+
+    def test_count_backed_group_retains_every_mark_in_a_hypothesis(self):
+        self.count_only_report()
+        path = run_case("synthetic-case", root=self.root, use_llm=False)
+        combined = json.loads(path.read_text())
+        lesion = combined["lesions"][0]
+        self.assertNotIn("source_subject", lesion)
+        hypothesis = next(h for h in combined["matching"]["hypotheses"] if h["id"] == lesion["hypothesis"])
+        self.assertEqual({m["subject"] for m in hypothesis["memberships"]}, {"mid.m1", "base.m1"})
+        self.assertIn("report:specimen-reported_lesion_count", hypothesis["supports"])
+        self.save_decisions([decision("reject_group", {"group": "g1"})])
+        _, reviewed = self.run_pipeline()
+        self.assertEqual(reviewed["lesions"][0]["identity_disposition"], "unresolved")
+        hypothesis = next(h for h in reviewed["matching"]["hypotheses"] if h["id"] == lesion["hypothesis"])
+        self.assertTrue(all(m["review_status"] == "needs_review" for m in hypothesis["memberships"]))
+
     def test_full_case_pins_inputs_and_writes_new_runs(self):
         first, original = self.run_pipeline()
         second, later = self.run_pipeline()
@@ -134,6 +181,14 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(original["lesions"][1]["sectors"]["confidence"]["final"], "medium")
         self.assertEqual(original["inputs"]["report"]["sha256"], later["inputs"]["report"]["sha256"])
         self.assertEqual(len(self.calls), 2)
+
+    def test_offline_run_records_llm_request_metadata(self):
+        path = run_case("synthetic-case", root=self.root, use_llm=False)
+        brain = json.loads(path.read_text())["brains"]["llm"]
+        self.assertEqual(brain["status"], "missing")
+        self.assertEqual(len(brain["prompt_sha256"]), 64)
+        self.assertTrue(brain["settings"])
+        self.assertEqual(self.calls, [])
 
     def test_same_case_id_in_another_batch_does_not_establish_pairing(self):
         drawing = json.loads(self.drawing_file.read_text())
@@ -174,6 +229,8 @@ class PipelineTests(unittest.TestCase):
         self.save_decisions([])
         _, rerun = self.run_pipeline()
         self.assertEqual(rerun["lesions"], previous["lesions"])
+        self.assertEqual(rerun["decisions_applied"], previous["decisions_applied"])
+        self.assertFalse(any(i["kind"] == "matcher_disagreement" and i["status"] == "open" for i in rerun["issues"]))
         self.assertEqual(len(self.calls), 1)
 
     def test_dominance_edit_keeps_lesion_identity_and_order(self):
@@ -217,6 +274,22 @@ class PipelineTests(unittest.TestCase):
                                      {"status": "recorded", "value": {"type": "text", "text": "A", "original_wording": "review A"}})])
         _, reviewed = self.run_pipeline()
         self.assertEqual(reviewed["lesions"][0]["sectors"]["confidence"]["final"], "high")
+        resolved = next(i for i in reviewed["issues"] if i["kind"] == "matcher_disagreement")
+        self.assertEqual(resolved["resolved_by"], ["d1"])
+        self.assertEqual(resolved["decision"]["reviewer"], "synthetic-reviewer")
+
+    def test_resolving_unrelated_issue_keeps_matcher_disagreement_open(self):
+        def disagree(body):
+            return {"assignments": [], "confidence": [], "issues": [
+                {"kind": "other", "severity": "question", "context": ["f1"], "reason": "Separate review question."}]}
+        path = run_case("synthetic-case", root=self.root, transport=disagree)
+        original = json.loads(path.read_text())
+        issue = next(i for i in original["issues"] if i.get("reason") == "Separate review question.")
+        self.save_decisions([decision("resolve_issue", {"issue": issue["id"]})])
+        _, reviewed = self.run_pipeline()
+        self.assertEqual(next(i for i in reviewed["issues"] if i["id"] == issue["id"])["status"], "resolved")
+        self.assertTrue(all(i["status"] == "open" for i in reviewed["issues"] if i["kind"] == "matcher_disagreement"))
+        self.assertEqual(reviewed["lesions"][0]["identity_certainty"]["level"], "low")
 
     def test_changed_input_invalidates_missing_decision_target(self):
         self.run_pipeline()

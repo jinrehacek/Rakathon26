@@ -620,6 +620,13 @@ def _result(model: str, prompt_sha256: str, settings: dict, *, status: str,
     return result
 
 
+def unavailable_llm(report: dict, drawing: dict, reason: str) -> dict:
+    """Record the reproducible request metadata without calling a transport."""
+    _, prompt_sha256 = _request(report, drawing)
+    return _result(MODEL, prompt_sha256, dict(SETTINGS), status="missing",
+                   assignments=[], issues=[], confidence=[], raw=None, error=reason)
+
+
 def run_llm(report: dict, drawing: dict, *, transport: Transport | None = None) -> dict:
     """Return one validated LLM reading, or status ``missing`` with the reason.
 

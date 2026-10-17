@@ -32,16 +32,58 @@ def _case_folder(source_path: str, case_id: str) -> tuple[str, ...]:
 
 def _stable_order(interpretation: dict, reference: dict) -> None:
     """A property edit does not silently renumber REDCap lesion instances."""
-    prior = {lesion.get("focus") or lesion.get("source_subject"): lesion for lesion in reference["lesions"]}
+    prior = {lesion.get("focus") or lesion.get("source_identity") or lesion.get("source_subject"): lesion for lesion in reference["lesions"]}
     remap = {}
     for lesion in interpretation["lesions"]:
-        old = prior.get(lesion.get("focus") or lesion.get("source_subject"))
+        old = prior.get(lesion.get("focus") or lesion.get("source_identity") or lesion.get("source_subject"))
         if old:
             remap[lesion["id"]] = old["id"]
             lesion.update(id=old["id"], order=old["order"])
     interpretation["lesions"].sort(key=lambda lesion: lesion["order"])
     for issue in interpretation["issues"]:
         issue["context"] = [remap.get(ref, ref) for ref in issue.get("context", [])]
+
+
+def _complete_lineage(interpretation: dict, matching: dict, candidates: list[dict], decisions: list[dict]) -> None:
+    """Materialize drawing-backed and non-tumour hypotheses with every membership retained."""
+    index = {candidate["id"]: candidate for candidate in candidates}
+    rejected = {"group:" + d["target"]["group"].removeprefix("group:"): d["id"]
+                for d in decisions if d["kind"] == "reject_group"}
+    for lesion in [*interpretation["lesions"], *interpretation["other_findings"]]:
+        other = lesion["kind"] == "other finding"
+        if ((not other and lesion.get("focus"))
+                or len(lesion.get("marks", [])) < (1 if other else 2)):
+            continue
+        lesion["source_identity"] = lesion.pop("source_subject", lesion.get("source_identity"))
+        hid = "h-drawing-" + lesion["id"]
+        memberships = ([{"subject": lesion["source_identity"], "role": "report description",
+                         "supports": [ref for prop in lesion["properties"] for ref in prop.get("supports", [])],
+                         "depends_on": [], "certainty": "low", "review_status": "unreviewed", "opposes": [],
+                         "rationale": "The report identifies this non-tumour finding."}] if other else [])
+        reassess = []
+        for cid in lesion["candidates"]:
+            candidate = index[cid]
+            dependencies = candidate.get("depends_on", [])
+            reassess.extend(rejected[ref] for ref in dependencies if ref in rejected)
+            memberships.extend({"subject": mark, "role": "diagram depiction", "supports": [mark],
+                                "depends_on": dependencies, "certainty": "low",
+                                "opposes": [], "rationale": "Membership follows the drawing candidate; identity remains provisional.",
+                                "review_status": "needs_review" if reassess else "unreviewed"}
+                               for mark in candidate["marks"])
+        matching["hypotheses"].append({"id": hid, "focus": None, "candidates": lesion["candidates"],
+                                       "memberships": memberships, "certainty": "low", "brain": "rules",
+                                       "supports": lesion.get("supports", [ref for prop in lesion["properties"] for ref in prop.get("supports", [])]),
+                                       "review_status": "needs_review" if reassess else "unreviewed",
+                                       "opposing_considerations": ["The reviewer rejected a supporting drawing group."] if reassess else [],
+                                       "assumptions": ["The drawing candidate depicts one finding; identity requires review."],
+                                       "rationale": "Compatible non-tumour location." if other else "Provisional drawing group, supported by the specimen count or multifocality statement."})
+        lesion["hypothesis"] = hid
+        if reassess:
+            lesion["identity_disposition"] = "unresolved"
+            lesion["review_status"] = "needs_review"
+            interpretation["issues"].append({"kind": "other", "severity": "question", "context": [lesion["id"], hid],
+                                              "reason": "The rejected drawing group requires reassessment of these memberships.",
+                                              "depends_on": ["decision:" + ident for ident in sorted(set(reassess))]})
 
 
 def _review_provenance(value, effective_report: dict) -> None:
@@ -72,7 +114,7 @@ def run_case(case_id: str, *, root: Path | None = None, report_path: Path | None
     from .checks import run_checks
     from .inputs import load_drawing, load_report
     from .lesions import build_interpretation
-    from .llm import run_llm
+    from .llm import run_llm, unavailable_llm
     from .matching import match
 
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", case_id):
@@ -107,6 +149,10 @@ def run_case(case_id: str, *, root: Path | None = None, report_path: Path | None
         previous_run = prior_file.parent.name
     same_inputs = bool(previous and previous["inputs"]["report"]["sha256"] == report_hash
                        and previous["inputs"]["drawing"]["sha256"] == drawing_hash)
+    if previous:
+        history = {decision["id"]: decision for decision in previous["decisions_applied"]}
+        history.update({decision["id"]: decision for decision in decisions})
+        decisions = list(history.values())
 
     candidates = build_candidates(drawing)
     matching = match(report, candidates)
@@ -118,7 +164,7 @@ def run_case(case_id: str, *, root: Path | None = None, report_path: Path | None
     if decisions or same_inputs:
         baseline = previous if same_inputs else {"matching": matching, "candidates": candidates}
         candidates, fixed, touched, decision_issues, applied = prepare_assignments(
-            report, drawing, candidates, baseline, decisions, fresh=not same_inputs)
+            report, drawing, candidates, baseline, decisions)
         matching = match(report, candidates, fixed_assignment=fixed,
                          previous_matching=prior_rules_matching)
     source_interpretation = build_interpretation(report, drawing, candidates, matching)
@@ -158,7 +204,7 @@ def run_case(case_id: str, *, root: Path | None = None, report_path: Path | None
     elif use_llm:
         llm = run_llm(report, drawing, transport=transport)
     else:
-        llm = {"status": "missing", "model": "gemini-3.8-flash", "error": "LLM disabled for this offline run."}
+        llm = unavailable_llm(report, drawing, "LLM disabled for this offline run.")
 
     # Property edits also remove the old LLM opinion before combining confidence.
     touched.update(decision["target"]["lesion"] for decision in decisions
@@ -166,7 +212,9 @@ def run_case(case_id: str, *, root: Path | None = None, report_path: Path | None
     prior_issues = {issue["id"]: issue for issue in (previous or {}).get("issues", [])}
     for decision in decisions:
         if decision["kind"] == "resolve_issue":
-            touched.update(prior_issues.get(decision["target"]["issue"], {}).get("context", []))
+            prior_issue = prior_issues.get(decision["target"]["issue"], {})
+            if prior_issue.get("kind") == "matcher_disagreement":
+                touched.update(prior_issue.get("context", []))
     if same_inputs:
         touched.update(mark for lesion in previous["lesions"]
                        if lesion.get("focus") in touched or lesion["id"] in touched
@@ -181,9 +229,25 @@ def run_case(case_id: str, *, root: Path | None = None, report_path: Path | None
                 affected.add(lesion["id"])
         for old_issue in previous["issues"]:
             if old_issue["kind"] == "matcher_disagreement" and affected.intersection(old_issue.get("context", [])):
+                relevant = []
+                for decision in decisions:
+                    target = decision["target"]
+                    refs = {value for key, value in target.items() if key in {"focus", "lesion", "mark"} and value}
+                    if target.get("group"):
+                        group = "group:" + target["group"].removeprefix("group:")
+                        refs.update(mark for candidate in previous["candidates"]
+                                    if group in candidate.get("depends_on", []) for mark in candidate["marks"])
+                    for lesion in previous["lesions"]:
+                        if refs.intersection({lesion["id"], lesion.get("focus"), *lesion.get("marks", [])}):
+                            refs.update({lesion["id"], lesion.get("focus"), *lesion.get("marks", [])})
+                    if ((decision["kind"] == "resolve_issue" and target["issue"] == old_issue["id"])
+                            or (decision["kind"] != "resolve_issue" and refs.intersection(old_issue.get("context", [])))):
+                        relevant.append(decision)
+                if not relevant:
+                    continue
                 resolved = deepcopy(old_issue)
-                resolved.update(status="resolved", resolved_by=[d["id"] for d in decisions
-                                                                if d["kind"] != "resolve_issue"])
+                resolved.update(status="resolved", resolved_by=[d["id"] for d in relevant],
+                                decision=deepcopy(relevant[-1]), decision_records=deepcopy(relevant))
                 interpretation["issues"].append(resolved)
     interpretation["issues"] = identify_issues(interpretation["issues"])
     interpretation, property_touched, property_applied = apply_interpretation_decisions(
@@ -194,6 +258,7 @@ def run_case(case_id: str, *, root: Path | None = None, report_path: Path | None
             if lesion["id"] not in touched | property_touched and lesion.get("focus") not in touched | property_touched:
                 if lesion["id"] in prior_lesions:
                     interpretation["lesions"][index] = deepcopy(prior_lesions[lesion["id"]])
+    _complete_lineage(interpretation, matching, candidates, decisions)
     interpretation["issues"] = identify_issues(interpretation["issues"])
     applied = {decision["id"]: decision for decision in [*applied, *property_applied]}
     inputs = {

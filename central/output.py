@@ -65,10 +65,15 @@ class CombinedOutput(Model):
             if len(ids) != len(set(ids)):
                 raise ValueError(f"duplicate {name} identifiers")
         candidate_ids = {candidate["id"] for candidate in self.candidates}
+        hypotheses = {hypothesis["id"]: hypothesis for hypothesis in self.matching.get("hypotheses", [])}
         for hypothesis in self.matching.get("hypotheses", []):
             if set(hypothesis["candidates"]) - candidate_ids:
                 raise ValueError("hypothesis references an unknown candidate")
         for interpretation in [*self.lesions, self.specimen, *self.other_findings]:
+            if bool(interpretation.get("hypothesis")) == bool(interpretation.get("source_subject")):
+                raise ValueError("interpretation must reference one hypothesis or one unmatched source subject")
+            if interpretation.get("hypothesis") and interpretation["hypothesis"] not in hypotheses:
+                raise ValueError("interpretation references an unknown hypothesis")
             if set(interpretation.get("candidates", [])) - candidate_ids:
                 raise ValueError("interpretation references an unknown candidate")
             for prop in interpretation.get("properties", []):
