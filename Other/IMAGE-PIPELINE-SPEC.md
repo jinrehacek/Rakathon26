@@ -51,9 +51,9 @@ scan
 
 ## Preprocess
 
-Exists in `scripts/extract_handwriting.py`: ORB + RANSAC alignment, template subtraction, `mask.png` and crops per view in reference coordinates.
+`drawing_pipeline/preprocess.py`, ported unchanged from the probes' `scripts/extract_handwriting.py`: ORB + RANSAC alignment, template subtraction, `mask.png` and crops per view in reference coordinates.
 
-Add a **hysteresis threshold** to the ink mask. Strong ink pixels seed the mask, and weak pixels join only if they connect to a seed. This targets faint pencil loops that break into dashes. Both machines benefit because both read the cleaned image.
+It adds a **hysteresis threshold** to the ink mask (on by default; `--no-hysteresis` gives the old mask). Strong ink pixels seed the mask, and weak pixels join only if they connect to a seed. This targets faint pencil loops that break into dashes. Both machines benefit because both read the cleaned image.
 
 ## Views and orientation
 
@@ -87,12 +87,12 @@ Survey behind the defaults (2026-10-17, one agent looking at all 40 sheets by ey
 
 ## Sector maps
 
-- **SV, axial and urethra views:** the 41 ctsit polygons in `Other/reference/sectors.json`, with REDCap codes. SV is included. `sector_regions.py` skips it today.
-- **Coronal and sagittal views:** 12 new regions drawn once on the reference. Coronal: 3 levels (base, mid, apex, from the printed dashed lines) × 2 image sides. Sagittal: 3 levels × anterior/posterior. They give level extent, side (coronal) and front/back (sagittal). No REDCap codes. Gemini sees them on its map and code uses them. The doctor's UI does not show them.
+- **SV, axial and urethra views:** the 41 ctsit polygons in `Other/reference/sectors.json`, with REDCap codes. SV is included.
+- **Coronal and sagittal views:** 12 new regions derived once from the printed dashed lines by `Other/reference/prepare_longitudinal_regions.py` and stored in `Other/reference/longitudinal_regions.json`. Coronal: 3 levels (base, mid, apex, from the printed dashed lines) × 2 image sides. Sagittal: 3 levels × anterior/posterior. They give level extent, side (coronal) and front/back (sagittal). No REDCap codes. Gemini sees them on its map and code uses them. The doctor's UI does not show them.
 
 ## Gemini
 
-Model `gemini-3.8-flash`, sampled with temperature 1.0 (`probe_gemini.py` already uses it) and no response caching, so the 3 runs differ. This replaces the old pass A and pass B. Change the prompt (`prompts/gemini_drawing.md`) and the schema in `scripts/probe_gemini.py` to match.
+Model `gemini-3.8-flash`, sampled with temperature 1.0 and no response caching, so the 3 runs differ. This replaces the old pass A and pass B. Prompt: `prompts/gemini_drawing.md`. Schema and calls: `drawing_pipeline/gemini.py`.
 
 Every call on a scan needs the user's go-ahead in that session (AGENTS.md).
 
@@ -132,7 +132,7 @@ Signal `named_vs_polygon` when Gemini names a sector its polygon does not touch,
 
 ## CV
 
-`scripts/sector_regions.py`, extended to SV and the 12 longitudinal regions:
+`drawing_pipeline/cv_regions.py`, ported from the probes' `scripts/sector_regions.py` and extended to SV, urethra and the 12 longitudinal regions:
 
 - connected components of the ink mask
 - closed loops filled
@@ -149,10 +149,10 @@ Runs after Gemini and CV. Neither machine sees its output.
 1. **Pairing.** Rasterise each merged Gemini bubble polygon in reference coordinates. A CV region pairs with a bubble when ≥ 50% of the region's pixels fall inside the polygon. One bubble may pair with several CV regions (a split loop).
 2. **Sector agreement**, only for bubbles paired with a closed or bridged CV region. Compare the share of the bubble's area per sector in (b) and (c). Signal `sources_disagree` when any sector differs by ≥ 15 percentage points. Smaller differences are recorded without a signal.
 3. **Single source.** Bubbles with no closed or bridged CV pair get `single_source`. Open arcs, shading and faint pencil usually land here. Suggestion: "info only". These should not reach the doctor's queue by default.
-4. **Unknown ink.** A CV component above `minimum_component_pixels` with < 50% of its pixels inside any merged Gemini mark (polygon grown by 10 px) becomes a mark of kind `unknown ink` with signal `unknown_ink`.
+4. **Unknown ink.** A CV component of at least `unknown_ink_minimum_px` (100) with < 50% of its pixels inside any merged Gemini mark (polygon grown by 10 px) becomes a mark of kind `unknown ink` with signal `unknown_ink`.
 5. **Not in ink.** A Gemini bubble with no ink-mask pixels under its polygon gets `not_in_ink`. Either Gemini invented it or subtraction lost faint ink. The count also shows whether hysteresis helps.
 
-The 50%, 15% and 10 px values are starting guesses. Grading sets them once.
+The 50%, 15%, 10 px and 100 px values are starting guesses. Grading sets them once. The 100 px floor was added after the first live run: printer tracking dots (faint yellow, 40 to 60 px each in the ink mask) gave 85 unknown-ink signals on one sheet.
 
 ## Notes and handwriting
 
@@ -202,7 +202,7 @@ Each signal sets `review_status: needs review` on the affected observations and 
 
 ## Output: `drawing.json`
 
-One file per case, keyed by the case ID from the preprocess `manifest.json`, written under `Other/output/` (ignored). It uses the same pydantic models as `report_extractor/models.py` on `main` (`Subject`, `Evidence`, `Certainty`, `ReviewStatus` and others), extended with image geometry. Two outputs on two different models would be the first thing to break when the central system combines them.
+One file per case, keyed by the case ID from the preprocess `manifest.json`, written under `Other/output/` (ignored). It reuses the status, basis, review status and certainty models of `report_extractor/models.py` (`AvailabilityStatus`, `Basis`, `ReviewStatus`, `Certainty`). Image geometry and the drawing subjects are in `drawing_pipeline/models.py`, because the text models only carry text evidence. Two outputs on two different models would be the first thing to break when the central system combines them.
 
 Sections: `extraction` (git SHA, model ID, prompt hash, thresholds, timestamp), `views`, `marks`, `groups`, `standalone`, `not_lesion`, `signals`.
 
@@ -253,9 +253,23 @@ The first four steps give a working end-to-end slice on one case. Then widen.
 2. **Sides.** Symmetry axes, orientation rules, patient side, polygon sectors (b), REDCap codes.
 3. **Grouping.** The call plus code checks.
 4. **`drawing.json`** with signals, on one case end to end.
-5. **CV.** Hysteresis, SV and longitudinal regions in `sector_regions.py`, the compare step.
+5. **CV.** Hysteresis, SV and longitudinal regions in `cv_regions.py`, the compare step.
 6. **Grading round 1** (below).
 7. **Hand-off.** The central system reads a real `drawing.json`.
+
+## Code
+
+One module per stage in `drawing_pipeline/`: `preprocess`, `gemini` + `merge` + `polygon_sectors`, `cv_regions`, `compare`, `orientation`, `notes`, `grouping`, `output`, `grading`. Shared data: `reference` (views, axes, sector maps, REDCap lookup), `geometry`, `models` (thresholds, signals, `drawing.json`), `llm` (Gemini client).
+
+```sh
+uv sync --extra drawing
+OPENBLAS_CORETYPE=Haswell uv run --env-file .env python -m drawing_pipeline run \
+    --manifest Other/preprocessed/<batch>/manifest.json --case <case-id> --sheets
+OPENBLAS_CORETYPE=Haswell uv run python -m drawing_pipeline run ... --replay   # rebuild from saved responses, no API call
+OPENBLAS_CORETYPE=Haswell uv run python -m drawing_pipeline grade --round 1 --case <id> ...
+```
+
+Output goes to `Other/output/drawing/<case-id>/` (ignored). `OPENBLAS_CORETYPE=Haswell` is needed on the QEMU dev host for the homography.
 
 ## Testing
 

@@ -27,6 +27,9 @@ THRESHOLDS = {
     "sources_disagree_points": 0.15,     # per-sector share difference between (b) and (c)
     "unknown_ink_inside_fraction": 0.5,  # CV component with less than this inside any grown Gemini mark
     "unknown_ink_grow_px": 10,
+    # Printer tracking dots (faint yellow, about 8 x 8 px, 40-60 px each in the ink mask) gave 85
+    # unknown-ink signals on one sheet. Smaller components are left out of unknown ink only.
+    "unknown_ink_minimum_px": 100,
     "gap_close_px": 10,                  # CV grows ink up to this to close gappy loops
     "letter_margin_px": 40,              # a letter belongs to a view whose crop plus this margin holds it
 }
@@ -171,6 +174,7 @@ class Group(Model):
     fixed: bool = False                   # kept unchanged from an earlier run at the app's request
     review_status: ReviewStatus = ReviewStatus.UNREVIEWED
     matching_certainty: CertaintyLevel = CertaintyLevel.UNASSESSED
+    certainty: Certainty = Certainty()   # carries the signal reasons in explanation
 
 
 class MarkReason(Model):
