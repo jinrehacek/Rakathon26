@@ -195,9 +195,11 @@ def run_case(case_id: str, *, root: Path | None = None, report_path: Path | None
 
     if rerun:
         llm = deepcopy(previous["brains"]["llm"])
+        llm.setdefault("input_hashes", {name: previous["inputs"][name]["sha256"] for name in ("report", "drawing")}
+                       if llm.get("input_hashes_match", True) else {})
         llm["before_decisions"] = True
-        llm["input_hashes_match"] = same_inputs
-        if not same_inputs:
+        llm["input_hashes_match"] = llm["input_hashes"] == {"report": report_hash, "drawing": drawing_hash}
+        if not llm["input_hashes_match"]:
             # Its old input reading remains visible, but contributes nothing to this new attempt.
             touched.update(lesion["id"] for lesion in interpretation["lesions"])
             touched.update(lesion.get("focus", "") for lesion in interpretation["lesions"])
@@ -205,6 +207,9 @@ def run_case(case_id: str, *, root: Path | None = None, report_path: Path | None
         llm = run_llm(report, drawing, transport=transport)
     else:
         llm = unavailable_llm(report, drawing, "LLM disabled for this offline run.")
+    if not rerun:
+        llm["input_hashes"] = {"report": report_hash, "drawing": drawing_hash}
+        llm["input_hashes_match"] = True
 
     # Property edits also remove the old LLM opinion before combining confidence.
     touched.update(decision["target"]["lesion"] for decision in decisions
@@ -219,7 +224,7 @@ def run_case(case_id: str, *, root: Path | None = None, report_path: Path | None
         touched.update(mark for lesion in previous["lesions"]
                        if lesion.get("focus") in touched or lesion["id"] in touched
                        for mark in lesion.get("marks", []))
-    active_llm = llm if not rerun or same_inputs else {
+    active_llm = llm if llm["input_hashes_match"] else {
         "status": "missing", "error": "Prior LLM reading belongs to different input hashes and is retained only as history."}
     interpretation, matching = combine(interpretation, matching, active_llm, touched=touched)
     if same_inputs:

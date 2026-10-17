@@ -263,6 +263,15 @@ class PipelineTests(unittest.TestCase):
         member = next(m for m in hypothesis["memberships"] if m["subject"] == "mid.m1")
         self.assertEqual(member["depends_on"], ["decision:d2"])
 
+    def test_group_rejection_preserves_a_prior_direct_membership_decision(self):
+        self.run_pipeline()
+        self.save_decisions([decision("assign_mark", {"focus": "f1", "mark": "mid.m1"}),
+                             decision("reject_group", {"group": "g1"}, ident="d2")])
+        _, reviewed = self.run_pipeline()
+        hypothesis = next(h for h in reviewed["matching"]["hypotheses"] if h["focus"] == "f1")
+        member = next(m for m in hypothesis["memberships"] if m["subject"] == "mid.m1")
+        self.assertEqual(member["depends_on"], ["decision:d1"])
+
     def test_reviewed_target_recovers_rules_certainty_after_llm_disagreement(self):
         def disagree(body):
             return {"assignments": [{"focus": "f2", "marks": ["apex.m1"], "reason": "Other focus unmatched."}],
@@ -301,6 +310,20 @@ class PipelineTests(unittest.TestCase):
         self.assertFalse(reviewed["brains"]["llm"]["input_hashes_match"])
         self.assertTrue(any("no longer exists" in i.get("reason", "") for i in reviewed["issues"]))
         self.assertEqual(reviewed["decisions_applied"], [])
+        self.assertEqual(len(self.calls), 1)
+
+    def test_old_llm_input_hashes_remain_stale_across_repeated_reruns(self):
+        self.run_pipeline()
+        self.save_decisions([])
+        drawing = json.loads(self.drawing_file.read_text())
+        drawing["extraction"]["notes"] = ["New input extraction."]
+        self.drawing_file.write_text(json.dumps(drawing))
+        _, changed = self.run_pipeline()
+        _, repeated = self.run_pipeline()
+        self.assertFalse(changed["brains"]["llm"]["input_hashes_match"])
+        self.assertFalse(repeated["brains"]["llm"]["input_hashes_match"])
+        self.assertNotEqual(repeated["brains"]["llm"]["input_hashes"]["drawing"], repeated["inputs"]["drawing"]["sha256"])
+        self.assertTrue(any(i["kind"] == "llm_missing" for i in repeated["issues"]))
         self.assertEqual(len(self.calls), 1)
 
 

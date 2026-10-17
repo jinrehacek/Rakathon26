@@ -138,6 +138,7 @@ def prepare_assignments(report: dict, drawing: dict, candidates: list[dict], pre
             dependent = {mark for candidate in old_candidates.values()
                          if group in candidate.get("depends_on", []) or candidate.get("source") == group
                          for mark in candidate["marks"]}
+            dependent.difference_update(direct_choices)
             for focus, members in ownership.items():
                 affected = members & dependent
                 if affected:

@@ -34,7 +34,7 @@ Confidence is qualitative. Two models reading the same inputs do not provide ind
 
 ## Doctor decisions
 
-Save a `decisions-1` file at `Other/output/combined/<case>/decisions.json`, then run the same command. The file is an appendable review history, so retain earlier entries. Example:
+Save a `decisions-1` file at `Other/output/combined/<case>/decisions.json`, then run the same command. Central carries forward decisions from the previous run and appends new IDs. Use a new decision ID for a later correction. Example:
 
 ```json
 {
