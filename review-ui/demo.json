@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "doctor-review-demo-v1",
+  "caseId": "SYNTHETIC-DEMO-001",
+  "recordId": "",
+  "sourceDescription": "Entirely invented UI fixture. Not an analysis result or a clinical record.",
+  "reportText": "SYNTHETIC REFERENCE — NOT A PATIENT REPORT\n\nFinding A\nDemonstration region: right posterolateral peripheral zone, mid.\nPrimary Gleason pattern: 3.\nDimensions: 11 × 15 × 8 mm (invented axes for UI testing).\nExtraprostatic extension: uncertain.\nPerineural invasion: not reported.\n\nFinding B\nDemonstration regions: left anterior peripheral zone, apex, plus an intentionally overlapping sector.\nPrimary Gleason pattern: 4.\nPerineural invasion: unreadable in this invented example.\n\nAll values are fictional. This text is a placeholder until a reference report is supplied.",
+  "lesions": [
+    {
+      "id": "demo-finding-a",
+      "instance": 1,
+      "label": "Finding A",
+      "regions": ["pzpl_mid_rs"],
+      "values": {
+        "hist_type_sur": "2",
+        "lesion_x_mm": "11",
+        "lesion_y_mm": "15",
+        "lesion_z_mm": "8",
+        "extracaps_ext": "2",
+        "perineural_inv_sur": "4",
+        "gleason_prim_grade": "3",
+        "gleason_prim_perc": "",
+        "gleason_sec_grade": "",
+        "gleason_sec_perc": "",
+        "gleason_tert_grade": "",
+        "gleason_tert_perc": ""
+      },
+      "issues": [
+        {
+          "id": "demo-location",
+          "message": "Synthetic location uncertainty: confirm the right mid posterolateral assignment. Keeping uncertainty is a valid decision; explain it below.",
+          "regionCodes": ["pzpl_mid_rs"],
+          "sourceRef": "Synthetic report, Finding A; synthetic drawing dashed outline.",
+          "hint": "Check patient side and level against both sources. No real evidence is provided by this fixture.",
+          "resolved": false,
+          "resolution": ""
+        }
+      ],
+      "reviewed": false
+    },
+    {
+      "id": "demo-finding-b",
+      "instance": 2,
+      "label": "Finding B",
+      "regions": ["pza_apex_ls", "pzpl_mid_rs"],
+      "values": {
+        "hist_type_sur": "2",
+        "extracaps_ext": "3",
+        "perineural_inv_sur": "",
+        "gleason_prim_grade": "4"
+      },
+      "issues": [
+        {
+          "id": "demo-pni",
+          "message": "Synthetic unreadable PNI value: choose the reviewed value or retain an explicitly justified outcome. The required field is intentionally blank.",
+          "regionCodes": [],
+          "sourceRef": "Synthetic report, Finding B.",
+          "hint": "An unreadable value is not an explicit negative. Do not fill a clinical default.",
+          "resolved": false,
+          "resolution": ""
+        }
+      ],
+      "reviewed": false
+    }
+  ]
+}

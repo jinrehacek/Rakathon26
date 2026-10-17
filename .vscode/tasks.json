@@ -1,0 +1,27 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Serve doctor review demo",
+			"type": "shell",
+			"command": "uv",
+			"args": [
+				"run",
+				"--no-project",
+				"--python",
+				"3.12",
+				"python",
+				"-I",
+				"-m",
+				"http.server",
+				"8766",
+				"--bind",
+				"127.0.0.1",
+				"--directory",
+				"review-ui"
+			],
+			"isBackground": true,
+			"problemMatcher": []
+		}
+	]
+}

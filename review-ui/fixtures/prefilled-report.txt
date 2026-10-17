@@ -1,0 +1,4 @@
+SYNTHETIC UI DEMO - NOT A PATIENT REPORT.
+Focus A: carcinoma; dimensions x=11 mm, y=15 mm, z=9 mm; extraprostatic extension absent; perineural invasion present; primary Gleason pattern 3 (60%), secondary pattern 4 (35%), tertiary pattern 5 (5%).
+Focus B: carcinoma; dimensions x=7 mm, y=6 mm, z=5 mm; extraprostatic extension indeterminate; perineural invasion absent; primary Gleason pattern 4 (65%), secondary pattern 3 (30%), tertiary pattern 5 (5%).
+The sector assignments are invented for the interface demonstration, not extracted from the displayed scans.
