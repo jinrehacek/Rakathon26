@@ -43,7 +43,7 @@ class ValidationResult:
 
     @property
     def complete(self) -> bool:
-        return not self.quarantine and not self.errors and not self.issues
+        return not self.quarantine and not self.errors
 
 
 def _identifier(raw: Any) -> str | None:
@@ -231,7 +231,9 @@ def _validate_evidence(
             continue
         if evidence.text_layer_id != text_layer.id:
             reasons.append("evidence points to a different text layer")
-        if evidence.end_offset > len(text_layer.text):
+        if evidence.quotation is None:
+            pass
+        elif evidence.end_offset > len(text_layer.text):
             reasons.append("evidence offsets exceed the immutable text layer")
         elif (
             evidence.start_offset >= evidence.end_offset
@@ -239,8 +241,7 @@ def _validate_evidence(
             != evidence.quotation
         ):
             reasons.append("quotation does not match its exact text offsets")
-        if not evidence.quotation:
-            reasons.append("evidence quotation cannot be empty")
+
         if evidence.image_region is not None:
             region = evidence.image_region
             if text_layer.input_kind.value != "image":
@@ -256,7 +257,7 @@ def _validate_evidence(
         if reasons:
             _quarantine(result, "evidence", raw, reasons)
         else:
-            if evidence.image_region is None and text_layer.input_kind.value == "image":
+            if evidence.quotation is not None and evidence.image_region is None and text_layer.input_kind.value == "image":
                 overlapping = [
                     word
                     for word in text_layer.words
@@ -291,7 +292,7 @@ def _as_list(payload: dict[str, Any], field_name: str) -> list[Any]:
     return value
 
 
-def validate_payload(payload: Any, text_layer: TextLayer) -> ValidationResult:
+def validate_payload(payload: Any, text_layer: TextLayer, *, contract: bool = False) -> ValidationResult:
     result = ValidationResult()
     required = {
         "source_text_sha256",
@@ -564,4 +565,12 @@ def validate_payload(payload: Any, text_layer: TextLayer) -> ValidationResult:
                     ["depends on a missing or quarantined alternative subject"],
                 )
 
+    if contract and not result.quarantine:
+        from .contract import validate_content
+        try:
+            validate_content(text_layer, result)
+        except (ValueError, KeyError, TypeError) as exc:
+            result.errors.append(str(exc))
+    if result.quarantine and not result.errors:
+        result.errors.append("Invalid items remain in quarantine.")
     return result

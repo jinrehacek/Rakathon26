@@ -6,8 +6,8 @@ from typing import Any, Protocol
 
 from .models import TextLayer
 
-PROMPT_VERSION = "report-extraction-v1"
-OUTPUT_CONTRACT_VERSION = "1.0.0"
+PROMPT_VERSION = "report-extraction-v2"
+OUTPUT_CONTRACT_VERSION = "report-3"
 
 
 class ExtractionError(RuntimeError):
@@ -26,7 +26,7 @@ class FixtureExtractor:
     def __init__(self, fixture_path: str | Path):
         self.fixture_path = Path(fixture_path)
 
-    def extract(self, text_layer: TextLayer) -> Any:
+    def extract(self, text_layer: TextLayer, *, validation_errors=None) -> Any:
         try:
             fixture = json.loads(self.fixture_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:

@@ -19,7 +19,7 @@ from typing import Any, Callable
 
 MODEL = "gemini-3.8-flash"
 API = "https://generativelanguage.googleapis.com/v1beta"
-PROMPT_VERSION = "central-llm-1"
+PROMPT_VERSION = "central-llm-2"
 TIMEOUT_SECONDS = 60.0
 MAX_OUTPUT_TOKENS = 8192
 
@@ -34,7 +34,7 @@ SETTINGS = {
 
 Transport = Callable[[dict], dict | str]
 
-PROMPT = """You are a second reader for one prostate cancer case. You receive a report-2 text extraction and a drawing-1 extraction as JSON. They are supplied as a pair for the same preprocessed case.
+PROMPT = """You are a second reader for one prostate cancer case. You receive a report-3 text extraction and a drawing-1 extraction as JSON. They are supplied as a pair for the same preprocessed case.
 
 Return one JSON object with exactly three keys: assignments, issues, confidence. No markdown, no commentary, no extra keys.
 
@@ -45,6 +45,8 @@ Rules:
 - Use mark IDs exactly from drawing.marks. A mark belongs to at most one focus. Do not assign a mark listed in drawing.not_lesion.
 - Assign a mark only when it may depict that report focus. If no mark fits a focus, omit the focus from assignments.
 - Report text decides patient side. Mark position and handwritten P/L letters support it. If text and drawing disagree, keep both readings and raise the matching issue without overwriting either source.
+- Conflicting report observations are unresolved alternatives, never a list-order winner. Preserve exact zones: pz matches pza/pzpl/pzpm, tz matches tza/tzp, and an exact zone matches only itself.
+- Specimen EPE/PNI stays at specimen scope. A negative can only suggest lesion absence for confirmation. A positive with several lesions needs attribution, never a default positive on each lesion.
 - A drawing mark alone never creates a lesion. Never convert pixels to millimetres.
 - Give every assignment, issue and confidence item a short concrete reason.
 - issues.kind must be one of: side_conflict, ap_conflict, level_conflict, ambiguous_assignment, matcher_disagreement, unmatched_candidate, unmatched_focus, lesion_from_drawing, count_mismatch, inferred_sectors, check_failed, size_note_conflict, llm_missing, other.

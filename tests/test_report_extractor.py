@@ -26,7 +26,7 @@ from report_extractor.validation import validate_payload
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_TEXT = ROOT / "fixtures" / "synthetic_report.txt"
-FIXTURE_RESPONSE = ROOT / "fixtures" / "synthetic_response.json"
+FIXTURE_RESPONSE = ROOT / "fixtures" / "synthetic_report3_response.json"
 
 
 def text_layer_for(text: str) -> TextLayer:
@@ -217,7 +217,7 @@ class FixturePipelineTests(unittest.TestCase):
         result = validate_payload(extractor.extract(self.layer), self.layer)
         self.assertTrue(result.complete)
         self.assertEqual(len(result.subjects), 3)
-        self.assertEqual(len(result.observations), 13)
+        self.assertEqual(len(result.observations), 46)
         self.assertEqual(
             {item.kind for item in result.subjects}, {"specimen", "tumour_focus"}
         )
@@ -226,7 +226,7 @@ class FixturePipelineTests(unittest.TestCase):
         specimen_dimensions = next(
             item
             for item in result.observations
-            if item.id == "obs-specimen-dimensions-unreported"
+            if item.id == "specimen-1-lymph_nodes_examined"
         )
         self.assertEqual(specimen_dimensions.status, "not reported")
         self.assertEqual(specimen_dimensions.evidence_ids, ())
@@ -241,9 +241,9 @@ class FixturePipelineTests(unittest.TestCase):
             {item.review_status for item in result.observations}, {"unreviewed"}
         )
         negative = next(
-            item for item in result.observations if item.id == "obs-explicit-negative"
+            item for item in result.observations if item.id == "obs-r"
         )
-        self.assertEqual(negative.value.value, "absent")
+        self.assertEqual(negative.value.original_code, "R0")
 
         with tempfile.TemporaryDirectory() as directory:
             output = run_extraction(self.layer, extractor, directory)
@@ -641,8 +641,8 @@ class ValidationTests(unittest.TestCase):
         ]
         fixture = {
             "mode": "fixture",
-            "prompt_version": "report-extraction-v1",
-            "output_contract_version": "1.0.0",
+            "prompt_version": "report-extraction-v2",
+            "output_contract_version": "report-3",
             "for_text_sha256": layer.text_sha256,
             "response": payload,
         }
@@ -677,8 +677,8 @@ class ValidationTests(unittest.TestCase):
             # Rendering is exercised through the full pipeline using the fixture contract.
             fixture = {
                 "mode": "fixture",
-                "prompt_version": "report-extraction-v1",
-                "output_contract_version": "1.0.0",
+                "prompt_version": "report-extraction-v2",
+                "output_contract_version": "report-3",
                 "for_text_sha256": layer.text_sha256,
                 "response": payload,
             }
