@@ -301,6 +301,11 @@ All are probes.
 
 ## Backlog
 
+Drawing groups are light suggestions for the central system. The following review findings are deferred:
+
+- Check each available coronal or sagittal member's level bands against the axial members, even when the other longitudinal view has no member. An unmarked view is valid and does not imply a missing finding.
+- Detect contradictory grouping assignments, such as a mark in both a group and `not_lesion`, and record marks the grouping call leaves unassigned. Preserve all extracted marks; an unassigned mark does not by itself prove a lesion or an extraction error.
+
 Only if the plan above runs into trouble.
 
 - Run grouping 3 times and signal groups that change between runs.

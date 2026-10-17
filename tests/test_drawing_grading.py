@@ -55,6 +55,27 @@ def test_missing_crop_raises(tmp_path):
         grading.make_sheets(tmp_path, make_output())
 
 
+def test_sector_signals_appear_once_on_the_correct_mark_row():
+    output = make_output()
+    mark = output.marks[0]
+    neighbour = mark.model_copy(update={"id": "base.m10"})
+    signals = [
+        signal("named_vs_polygon", ["base.m1.sectors_named", "base.m1.sectors_polygon"], "sector mismatch"),
+        signal("run_instability", ["base.m1.sectors_named"], "sector varies across runs"),
+        signal("not_in_ink", ["base.m1"], "no ink under mark"),
+        signal("named_vs_polygon", ["base.m10.sectors_named"], "neighbour mismatch"),
+    ]
+    view = next(v for v in output.views if v.id == "base")
+    page = grading._view_section("base", view.orientation, [mark, neighbour], signals)
+    rows = page.split("<tr>")
+    mark_row = next(row for row in rows if row.startswith("<td>base.m1</td>"))
+    neighbour_row = next(row for row in rows if row.startswith("<td>base.m10</td>"))
+    assert mark_row.count("sector mismatch") == 1
+    assert "sector varies across runs" in mark_row and "no ink under mark" in mark_row
+    assert "neighbour mismatch" not in mark_row
+    assert "neighbour mismatch" in neighbour_row and "sector mismatch" not in neighbour_row
+
+
 def test_template_and_no_overwrite(tmp_path):
     output = make_output()
     text = grading.grading_template([output], 1)

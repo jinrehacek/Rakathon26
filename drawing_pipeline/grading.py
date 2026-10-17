@@ -53,7 +53,10 @@ def _sector_text(sectors: list[Sector]) -> str:
 
 
 def _signal_text(mark_id: str, signals: list[Signal]) -> str:
-    return "; ".join(f"{s.kind} ({s.suggestion}): {s.reason}" for s in signals if mark_id in s.observations) or "none"
+    return "; ".join(
+        f"{s.kind} ({s.suggestion}): {s.reason}" for s in signals
+        if any(observation == mark_id or observation.startswith(mark_id + ".") for observation in s.observations)
+    ) or "none"
 
 
 def make_sheets(case_out: Path, output: DrawingOutput, cv_overlays: dict[str, np.ndarray] | None = None) -> Path:
