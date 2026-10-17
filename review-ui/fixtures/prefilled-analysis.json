@@ -1,0 +1,63 @@
+{
+  "schema_version": "doctor-review-showcase-v1",
+  "mode": "synthetic",
+  "report_sha256": "9f333b21c0e7a6a4626540724bb55fcb1cb1786455f03d5a84215beebd54048d",
+  "evidence": [
+    {
+      "id": "focus-a-text",
+      "quotation": "Focus A: carcinoma; dimensions x=11 mm, y=15 mm, z=9 mm; extraprostatic extension absent; perineural invasion present; primary Gleason pattern 3 (60%), secondary pattern 4 (35%), tertiary pattern 5 (5%)."
+    },
+    {
+      "id": "focus-b-text",
+      "quotation": "Focus B: carcinoma; dimensions x=7 mm, y=6 mm, z=5 mm; extraprostatic extension indeterminate; perineural invasion absent; primary Gleason pattern 4 (65%), secondary pattern 3 (30%), tertiary pattern 5 (5%)."
+    },
+    {
+      "id": "demo-regions",
+      "quotation": "The sector assignments are invented for the interface demonstration, not extracted from the displayed scans."
+    }
+  ],
+  "lesions": [
+    {
+      "id": "focus-a",
+      "label": "Synthetic lesion A",
+      "fields": {
+        "hist_type_sur": {"value": "2", "status": "recorded", "basis": "normalized", "evidence_ids": ["focus-a-text"]},
+        "lesion_x_mm": {"value": "11", "status": "recorded", "basis": "explicit", "evidence_ids": ["focus-a-text"]},
+        "lesion_y_mm": {"value": "15", "status": "recorded", "basis": "explicit", "evidence_ids": ["focus-a-text"]},
+        "lesion_z_mm": {"value": "9", "status": "recorded", "basis": "explicit", "evidence_ids": ["focus-a-text"]},
+        "extracaps_ext": {"value": "3", "status": "recorded", "basis": "normalized", "evidence_ids": ["focus-a-text"]},
+        "perineural_inv_sur": {"value": "1", "status": "recorded", "basis": "normalized", "evidence_ids": ["focus-a-text"]},
+        "gleason_prim_grade": {"value": "3", "status": "recorded", "basis": "explicit", "evidence_ids": ["focus-a-text"]},
+        "gleason_prim_perc": {"value": "60", "status": "recorded", "basis": "explicit", "evidence_ids": ["focus-a-text"]},
+        "gleason_sec_grade": {"value": "4", "status": "recorded", "basis": "explicit", "evidence_ids": ["focus-a-text"]},
+        "gleason_sec_perc": {"value": "35", "status": "recorded", "basis": "explicit", "evidence_ids": ["focus-a-text"]},
+        "gleason_tert_grade": {"value": "5", "status": "recorded", "basis": "explicit", "evidence_ids": ["focus-a-text"]},
+        "gleason_tert_perc": {"value": "5", "status": "recorded", "basis": "explicit", "evidence_ids": ["focus-a-text"]}
+      },
+      "regions": ["pzpl_base_ls", "pzpl_mid_ls"],
+      "region_evidence_ids": ["demo-regions"],
+      "region_reason": "Invented left base/mid sector placement for the UI showcase only; not an analysis of the displayed drawing."
+    },
+    {
+      "id": "focus-b",
+      "label": "Synthetic lesion B",
+      "fields": {
+        "hist_type_sur": {"value": "2", "status": "recorded", "basis": "normalized", "evidence_ids": ["focus-b-text"]},
+        "lesion_x_mm": {"value": "7", "status": "recorded", "basis": "explicit", "evidence_ids": ["focus-b-text"]},
+        "lesion_y_mm": {"value": "6", "status": "recorded", "basis": "explicit", "evidence_ids": ["focus-b-text"]},
+        "lesion_z_mm": {"value": "5", "status": "recorded", "basis": "explicit", "evidence_ids": ["focus-b-text"]},
+        "extracaps_ext": {"value": "2", "status": "recorded", "basis": "normalized", "evidence_ids": ["focus-b-text"]},
+        "perineural_inv_sur": {"value": "3", "status": "recorded", "basis": "normalized", "evidence_ids": ["focus-b-text"]},
+        "gleason_prim_grade": {"value": "4", "status": "recorded", "basis": "explicit", "evidence_ids": ["focus-b-text"]},
+        "gleason_prim_perc": {"value": "65", "status": "recorded", "basis": "explicit", "evidence_ids": ["focus-b-text"]},
+        "gleason_sec_grade": {"value": "3", "status": "recorded", "basis": "explicit", "evidence_ids": ["focus-b-text"]},
+        "gleason_sec_perc": {"value": "30", "status": "recorded", "basis": "explicit", "evidence_ids": ["focus-b-text"]},
+        "gleason_tert_grade": {"value": "5", "status": "recorded", "basis": "explicit", "evidence_ids": ["focus-b-text"]},
+        "gleason_tert_perc": {"value": "5", "status": "recorded", "basis": "explicit", "evidence_ids": ["focus-b-text"]}
+      },
+      "regions": ["pza_apex_rs"],
+      "region_evidence_ids": ["demo-regions"],
+      "region_reason": "Invented right apex sector placement for the UI showcase only; not an analysis of the displayed drawing."
+    }
+  ]
+}
