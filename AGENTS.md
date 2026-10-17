@@ -7,7 +7,7 @@ This is a 24-hour hackathon. A working end-to-end slice beats a polished partial
 ## Files and patient data
 
 - `Other/` is not git-ignored. The current anonymised hackathon scans are tracked in Git.
-- Keep research files in `Other/research/`. Keep the image pipeline proposal in `Other/IMAGE_PIPELINE.md`.
+- Keep research files in `Other/research/`. Keep the image pipeline proposal in `Other/IMAGE_PIPELINE.md` and the current image pipeline spec in `Other/IMAGE-PIPELINE-SPEC.md`.
 - Keep identifiable production records, patient-linked extracted text and model output, and tokens out of Git. Add a new local data or output folder to `.gitignore` before the first write.
 - Send a scan or extracted text to an external model or service only when the user has said so in the current session. Local processing is fine.
 
@@ -35,5 +35,6 @@ Local redaction, a hospital-held patient mapping, external extraction and local 
 - Inspect the files, data and command output before claiming anything about them. Say what you verified and label guesses.
 - Carry authorized work through implementation and verification. Ask again only when new information changes the scope or needs a separate decision.
 - Measure model accuracy on our scans, not on vendor benchmarks. A run on three sheets is a probe, so call it one.
+- Before calling an image-pipeline change good, prepare 5 to 8 grading sheets and ask the user to grade them. Format: `Other/IMAGE-PIPELINE-SPEC.md`, section "Testing".
 - Write plainly. Cut praise, filler, repeated explanations and process narration.
 - Change only what the task needs. Commit only when asked.

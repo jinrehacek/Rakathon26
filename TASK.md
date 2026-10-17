@@ -45,7 +45,8 @@ Confirmed by the user on 2026-10-16:
 - The current hackathon samples are fully anonymised and supplied without usage restrictions. Production will use identifiable hospital reports.
 - The result must remain associated with the patient, and the REDCap record must include rodné číslo.
 - MOÚ will operate the production service and own its hosting and API accounts. We supply the software.
-- Zero retention of patient content by an external model API provider is mandatory. The hospital still stores source records and identified REDCap entries.
+- Zero retention of patient content by an external model API provider is mandatory. The data are also intended for future model benchmarking, so benchmark material must be protected against provider retention and reuse. The hospital still stores source records and identified REDCap entries.
+- Provider reuse of submitted cases, prompts or outputs for model training or improvement must be prohibited. Verify this separately from retention controls for the selected service, model and features.
 - Hosting and processing locations should minimise hospital approval and compliance work. An EEA-only restriction has not been selected.
 
 Production architecture, hosting, the model provider, processing locations, the exact scope and configuration of zero retention, and approval of the specific deployment remain open.
