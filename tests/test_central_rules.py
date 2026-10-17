@@ -170,6 +170,110 @@ class MatchingTests(unittest.TestCase):
         self.assertEqual(result["comparisons"][-1]["outcome"], "not comparable")
 
 
+class MatchingMetadataTests(unittest.TestCase):
+    def test_unavailable_report_observation_is_no_counterpart_and_retains_status(self):
+        for status in ("not reported", "unreadable", "not assessed", "not applicable"):
+            with self.subTest(status=status):
+                r = report("a")
+                locate(r, "a", side=None)
+                missing = obs(r, "a", "laterality", status=status)
+                candidate = build_candidates(drawing(mark()))[0]
+                score, comparisons = pair_score(r, {"id": "a"}, candidate)
+                side = next(item for item in comparisons if item["property"] == "laterality")
+                self.assertEqual(side["outcome"], "no counterpart")
+                self.assertEqual(side["score"], 0.0)
+                self.assertEqual(side["report_ref"], "report:" + missing["id"])
+                self.assertEqual(side["report_status"], status)
+                self.assertEqual(side["input_observations"][0]["status"], status)
+                self.assertIn("report:" + missing["id"], side["inputs"])
+                self.assertIn(status, side["explanation"])
+                self.assertEqual(score, 3.0)  # level + zone + anteroposterior still agree
+
+    def test_absent_drawing_location_and_orientation_stays_indeterminate(self):
+        r = report("a")
+        locate(r, "a")
+        candidate = build_candidates(drawing(mark()))[0]
+        for field in ("sides", "levels", "zones", "anteroposterior"):
+            candidate[field] = []
+        candidate["side_basis"] = "inferred"
+        score, comparisons = pair_score(r, {"id": "a"}, candidate)
+        self.assertEqual(score, 0.0)
+        for comparison in comparisons[:-1]:
+            self.assertEqual(comparison["outcome"], "indeterminate")
+            self.assertEqual(comparison["score"], 0.0)
+        self.assertIn("orientation", comparisons[0]["explanation"])
+        self.assertIn("not no counterpart", comparisons[0]["explanation"])
+
+    def test_hypothesis_metadata_reflects_scored_agreement_and_inferred_orientation(self):
+        r = report("a")
+        locate(r, "a")
+        d = drawing(mark())
+        d["views"][0]["orientation"]["basis"] = "inferred"
+        result = match(r, build_candidates(d))
+        hypothesis = result["hypotheses"][0]
+        self.assertIn("c1", hypothesis["rationale"])
+        self.assertIn("+3.0", hypothesis["rationale"])
+        self.assertTrue(any("inferred" in note.lower() for note in hypothesis["opposing_considerations"]))
+        self.assertTrue(any("orientation" in note.lower() for note in hypothesis["assumptions"]))
+        for comparison in result["comparisons"]:
+            self.assertTrue(comparison["explanation"])
+            self.assertTrue(comparison["assumptions"])
+            self.assertIn(comparison["review_status"], {"unreviewed", "needs_review"})
+        member = next(item for item in hypothesis["memberships"] if item["subject"] == "mid.m1")
+        self.assertEqual(member["review_status"], "unreviewed")
+        self.assertEqual(member["opposes"], [])
+        self.assertIn("c1", member["rationale"])
+        self.assertTrue(hypothesis["memberships"][0]["rationale"])
+
+    def test_fixed_conflict_metadata_names_opposition_and_requests_review(self):
+        r = report("a")
+        locate(r, "a", "left", ("apex",), ("tz",), "anterior")
+        d = drawing(mark(side="right"))
+        d["views"][0]["orientation"]["basis"] = "inferred"
+        result = match(r, build_candidates(d), fixed_assignment={"a": ["c1"]})
+        hypothesis = result["hypotheses"][0]
+        self.assertEqual(hypothesis["certainty"], "low")
+        self.assertIn("-6.0", hypothesis["rationale"])
+        self.assertTrue(any("conflict" in note.lower() for note in hypothesis["opposing_considerations"]))
+        for comparison in result["comparisons"]:
+            if comparison["property"] != "size_rank":
+                self.assertEqual(comparison["review_status"], "needs_review")
+        report_member = hypothesis["memberships"][0]
+        self.assertEqual(report_member["review_status"], "needs_review")
+        self.assertIn("mid.m1", report_member["opposes"])
+        diagram_member = next(item for item in hypothesis["memberships"] if item["subject"] == "mid.m1")
+        self.assertEqual(diagram_member["review_status"], "needs_review")
+        self.assertTrue(any(ref.startswith("report:") for ref in diagram_member["opposes"]))
+        self.assertIn("needs review", diagram_member["rationale"])
+
+    def test_report_membership_opposes_only_the_conflicting_candidate_marks(self):
+        r = report("a")
+        locate(r, "a", "left", ("mid",), ("pz",), "posterior")
+        d = drawing(mark("mid.m1"), mark("mid.m2", side="right", zone="tza", level="apex"))
+        result = match(r, build_candidates(d), fixed_assignment={"a": ["c1", "c2"]})
+        hypothesis = result["hypotheses"][0]
+        self.assertEqual(hypothesis["memberships"][0]["opposes"], ["mid.m2"])
+        self.assertTrue(any("selected candidates depict one focus" in note
+                            for note in hypothesis["assumptions"]))
+        members = {member["subject"]: member for member in hypothesis["memberships"]}
+        self.assertEqual(members["mid.m1"]["review_status"], "unreviewed")
+        self.assertEqual(members["mid.m2"]["review_status"], "needs_review")
+
+    def test_assumptions_name_group_and_reviewer_decision_dependencies(self):
+        r = report("a")
+        locate(r, "a")
+        d = drawing(mark(), mark("mid.m2"))
+        d["groups"] = [{"id": "g1", "members": ["mid.m1", "mid.m2"]}]
+        d["standalone"] = []
+        candidate = build_candidates(d)[0]
+        grouped = match(r, [candidate], fixed_assignment={"a": ["c1"]})["hypotheses"][0]
+        self.assertTrue(any("group:g1 grouping its marks" in note for note in grouped["assumptions"]))
+        candidate["depends_on"] = ["decision:d1"]
+        reviewed = match(r, [candidate], fixed_assignment={"a": ["c1"]})["hypotheses"][0]
+        self.assertTrue(any("reviewer membership decision decision:d1" in note
+                            for note in reviewed["assumptions"]))
+
+
 class InterpretationTests(unittest.TestCase):
     def test_inferred_sectors_require_all_location_components(self):
         r = report("a")

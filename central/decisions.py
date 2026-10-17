@@ -211,7 +211,7 @@ def reviewed_report(report: dict, interpretation: dict, decisions: list[dict]) -
         for obs in result["extraction"]["observations"]:
             if obs["subject_id"] == lesion.get("focus") and obs["property"] == target["property"]:
                 status, value = validate_override(target["property"], decision["value"])
-                obs.update(status=status, value=value, certainty={"extraction": "unassessed", "interpretation": "unassessed",
+                obs.update(status=status, value=value, basis="inferred", certainty={"extraction": "unassessed", "interpretation": "unassessed",
                                                                 "explanation": decision["reason"]})
                 obs["review_decision"] = decision["id"]
     return result

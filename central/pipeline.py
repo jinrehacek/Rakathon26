@@ -99,6 +99,9 @@ def _review_provenance(value, effective_report: dict) -> None:
                     if revised != item:
                         node.setdefault("source_inputs", []).extend(ref for ref in item if isinstance(ref, str) and ref in changes)
                         node[key] = revised
+                elif key in {"report_ref", "ref"} and isinstance(item, str) and item in changes:
+                    node["source_" + key] = item
+                    node[key] = changes[item]
                 else:
                     visit(item)
         elif isinstance(node, list):

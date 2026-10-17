@@ -220,6 +220,12 @@ class PipelineTests(unittest.TestCase):
         level = next(p for p in reviewed["lesions"][0]["properties"] if p["property"] == "level")
         self.assertEqual(level["source_assessment"]["value"]["levels"], ["mid"])
         self.assertIn("decision:d2", reviewed["lesions"][0]["sectors"]["supports"])
+        comparison = next(c for pair in reviewed["matching"]["pair_scores"] if pair["focus"] == "f1"
+                          for c in pair["comparisons"] if c["property"] == "level")
+        self.assertEqual(comparison["report_ref"], "decision:d2")
+        self.assertEqual(comparison["input_observations"][0]["ref"], "decision:d2")
+        self.assertEqual(comparison["input_observations"][0]["basis"], "inferred")
+        self.assertEqual(comparison["source_report_ref"], "report:f1-level")
         self.assertEqual(len(self.calls), 1)
 
     def test_empty_followup_decisions_keep_previous_split_assignments(self):
