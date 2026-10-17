@@ -21,6 +21,7 @@ dev = ["pytest"]
 
 [project.scripts]
 report-extractor = "report_extractor.cli:main"
+central = "central.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["report_extractor*", "drawing_pipeline*"]
+include = ["report_extractor*", "drawing_pipeline*", "central*"]
