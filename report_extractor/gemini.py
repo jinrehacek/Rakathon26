@@ -29,6 +29,12 @@ def response_schema():
     evidence['required'] = ['id', 'image_region']
     # Review belongs to a doctor; the model does not author review metadata.
     definitions['Observation']['properties'].pop('review_status', None)
+    patterns = definitions['GleasonPatternsValue']
+    for key in ('primary_pattern', 'secondary_pattern'):
+        patterns['properties'].pop(key)
+    for key in ('primary', 'secondary'):
+        patterns['properties'][key] = {'$ref': '#/$defs/GleasonPattern'}
+        patterns['required'].append(key)
     definitions['ModelExtraction'] = extraction
     schema = {'type': 'object', 'required': ['handwriting', 'extraction'], 'additionalProperties': False,
             'properties': {

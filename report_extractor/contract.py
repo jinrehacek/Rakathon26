@@ -108,7 +108,7 @@ def validate_content(layer, extraction):
                 if items:
                     _require(len(items) == len(set(items)), "duplicate location component")
         if obs.property == "gleason_patterns":
-            _require(value.primary is not None and value.secondary is not None, "report-3 requires nested Gleason patterns")
+            _require(value.primary is not None and value.secondary is not None, f"report-3 observation {obs.id} requires nested Gleason patterns")
         if obs.property in CODE_DOMAINS:
             _require(value.code in CODE_DOMAINS[obs.property], f"invalid {obs.property} code")
         if obs.property in {"histology_type", "histology", "multifocality"}:

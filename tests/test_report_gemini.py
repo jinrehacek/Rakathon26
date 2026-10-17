@@ -208,3 +208,11 @@ def test_provider_schema_uses_enum_discriminators():
     assert schema['$defs']['CodedValue']['properties']['type']['enum']==['coded']
     encoded=json.dumps(schema)
     assert '"const"' not in encoded and '"oneOf"' not in encoded
+
+
+def test_provider_only_offers_nested_report3_patterns():
+    from report_extractor.gemini import response_schema
+    patterns=response_schema()['$defs']['GleasonPatternsValue']
+    assert 'primary_pattern' not in patterns['properties']
+    assert 'secondary_pattern' not in patterns['properties']
+    assert {'primary','secondary'} <= set(patterns['required'])
