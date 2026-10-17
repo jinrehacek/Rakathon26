@@ -22,23 +22,6 @@
 			],
 			"isBackground": true,
 			"problemMatcher": []
-		},
-		{
-			"label": "Serve preprocessing review",
-			"type": "shell",
-			"command": "uv",
-			"args": [
-				"run",
-				"--project",
-				"preprocess",
-				"--python",
-				"3.12",
-				"python",
-				"-I",
-				"preprocess/ui.py"
-			],
-			"isBackground": true,
-			"problemMatcher": []
 		}
 	]
 }

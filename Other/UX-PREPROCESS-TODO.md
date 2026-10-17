@@ -60,31 +60,15 @@ Status: 2026-10-17. Local hackathon demo, not clinically validated.
 
 ## Preprocessing: current baseline
 
-Local upload/review UI is implemented on `feature/preprocess`: upload JPGs,
-automatically hand off confident pairs, optionally inspect original/redacted
-images and mark reviewed or hold. Uncertain/unpaired inputs never auto-release.
-Manual mask editing and pair repair are deliberately outside this first slice.
-Backend checks and a synthetic upload -> real local OCR -> pair -> hold/approve
--> download smoke test pass. New patient-data accuracy claims have not been made.
-
-The earlier run produced **37 pairs from 80 JPG inputs**. After locally fixing
-OCR layout/scale retries, the same uploaded batch produced **40 pairs from 80
-images, with no excluded inputs**, preserving the 37 earlier case associations.
-The MVP uses local OCR, pairs by printed Rakathon ID, assigns stable
+The earlier local run produced **37 pairs from 80 JPG inputs**; six images were
+excluded. The MVP uses local OCR, pairs by printed Rakathon ID, assigns stable
 random case IDs, masks recognized IDs and writes copies without copied metadata.
 This is not proof of complete de-identification or production readiness.
 
-- [x] Investigate the three unresolved drawing scans and the six excluded
-  batch inputs. Local OCR missed a template label, misread small printed ID
-  prefixes or assigned low confidence; dense-layout and focused crop retries
-  recovered them without lowering confidence or guessing IDs.
-- [ ] Test the fixed retries on another batch, especially conflicting IDs and
-  genuine missing partners. Keep uncertain matches held.
+- [ ] Investigate all six excluded images: unreadable IDs, role detection,
+  missing partners, duplicate or conflicting IDs. Hold uncertain matches.
 - [ ] Run a fresh nested JPG/JPEG batch and reimport it. Verify stable case IDs,
   correct report/drawing roles, no duplicate cases and unchanged original files.
-- [ ] Test adding reports and drawings from different folders before one upload.
-  A batch containing only reports or only drawings must remain unpaired, never
-  be guessed into pairs; separate processed uploads do not combine automatically.
 - [ ] Test 90/180/270-degree rotation and separately test small skew. Inspect
   orientation and redaction coordinates, not just OCR success.
 - [ ] Inspect faint pink/yellow annotations, handwriting and dimensions after
@@ -102,8 +86,6 @@ This is not proof of complete de-identification or production readiness.
 - [ ] Preserve the private [ID dictionary](../preprocess/README.md#handoff)
   securely. It is plaintext and must not be shared with the analysis batch.
 - [ ] Keep the random `case_id` unchanged through extraction, matching and UI.
-- [ ] Have downstream retain the manifest's `output_sha256` values with returned
-  analysis JSON; these identify the exact handed-off images, not private originals.
 - [ ] Test the full round-trip on several cases: original printed ID -> paired
   random ID -> analysis result -> local original-ID lookup -> correct sources.
 - [ ] Verify both source hashes and fail on missing/ambiguous mappings. Test a
