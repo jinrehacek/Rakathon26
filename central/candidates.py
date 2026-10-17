@@ -4,7 +4,7 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-from .rules import DEFAULT_CROSSWALK, SECTOR_SHARE_MIN, ZONE_TABLE
+from .rules import DEFAULT_CROSSWALK, SECTOR_NAMED_RUNS_MIN, SECTOR_SHARE_MIN, ZONE_TABLE
 
 
 def crosswalk_rows(path: Path | None = None) -> list[dict]:
@@ -25,13 +25,24 @@ def sector_code(sector: dict, rows: list[dict]) -> str | None:
                  and row["patient_side"] == sector.get("patient_side")), None)
 
 
+def _sector_key(sector: dict) -> tuple:
+    return sector.get("zone"), sector.get("level"), sector.get("image_side")
+
+
 def sector_sets(mark: dict, rows: list[dict]) -> tuple[set[str], set[str]]:
-    selected = {code for sector in mark.get("sectors_named", [])
-                if (code := sector_code(sector, rows))}
-    selected.update(code for sector in mark.get("sectors_polygon", [])
-                    if sector["share"] >= SECTOR_SHARE_MIN
-                    and (code := sector_code(sector, rows)))
-    contacts = {code for source in ("sectors_polygon", "sectors_cv")
+    """A sector is in when Gemini named it in enough runs and, if the mark has a polygon,
+    the polygon puts enough of its in-sector area there. Every other contact is maybe."""
+    runs = [{_sector_key(s) for s in run} for run in mark.get("sectors_named_by_run", [])]
+    named = {code for sector in mark.get("sectors_named", [])
+             if sum(_sector_key(sector) in run for run in runs) >= SECTOR_NAMED_RUNS_MIN
+             and (code := sector_code(sector, rows))}
+    polygon = mark.get("sectors_polygon", [])
+    if polygon:
+        selected = named & {code for sector in polygon
+                            if sector["share"] >= SECTOR_SHARE_MIN and (code := sector_code(sector, rows))}
+    else:  # a mark too small to trace has no polygon; its named sectors decide
+        selected = named
+    contacts = {code for source in ("sectors_named", "sectors_polygon", "sectors_cv")
                 for sector in mark.get(source, [])
                 if (code := sector_code(sector, rows))}
     return selected, contacts - selected
