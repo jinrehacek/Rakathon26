@@ -87,6 +87,14 @@ class CandidateTests(unittest.TestCase):
         self.assertEqual(result["sectors_in"], ["pzpl_mid_ls"])
         self.assertEqual(result["sectors_maybe"], ["pza_mid_ls"])
 
+    def test_traced_polygon_without_sector_contact_keeps_named_as_maybe(self):
+        m = mark()
+        m["polygon_ref"] = [[0, 0], [5, 0], [5, 5]]
+        m["sectors_polygon"] = []
+        result = build_candidates(drawing(m))[0]
+        self.assertEqual(result["sectors_in"], [])
+        self.assertEqual(result["sectors_maybe"], ["pzpl_mid_ls"])
+
     def test_longitudinal_levels_and_group_dependencies(self):
         d = drawing(mark(), mark("coronal.m1", level="apex"))
         d["groups"] = [{"id": "g1", "members": ["mid.m1", "coronal.m1"]}]

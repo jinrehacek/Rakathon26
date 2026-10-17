@@ -36,9 +36,8 @@ def sector_sets(mark: dict, rows: list[dict]) -> tuple[set[str], set[str]]:
     named = {code for sector in mark.get("sectors_named", [])
              if sum(_sector_key(sector) in run for run in runs) >= SECTOR_NAMED_RUNS_MIN
              and (code := sector_code(sector, rows))}
-    polygon = mark.get("sectors_polygon", [])
-    if polygon:
-        selected = named & {code for sector in polygon
+    if mark.get("polygon_ref") or mark.get("sectors_polygon"):
+        selected = named & {code for sector in mark.get("sectors_polygon", [])
                             if sector["share"] >= SECTOR_SHARE_MIN and (code := sector_code(sector, rows))}
     else:  # a mark too small to trace has no polygon; its named sectors decide
         selected = named
