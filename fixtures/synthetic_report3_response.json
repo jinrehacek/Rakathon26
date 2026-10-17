@@ -1,0 +1,1040 @@
+{
+  "mode": "fixture",
+  "prompt_version": "report-extraction-v2",
+  "output_contract_version": "report-3",
+  "for_text_sha256": "3133b33324754e3e1710fda6311a51a225eb97bccd63765756334633ac4a8575",
+  "response": {
+    "source_text_sha256": "3133b33324754e3e1710fda6311a51a225eb97bccd63765756334633ac4a8575",
+    "evidence": [
+      {
+        "id": "e-specimen",
+        "text_layer_id": "tl-9cad32159aac464dd8df0be7",
+        "page": 1,
+        "quotation": "Preparát: prostatektomie.",
+        "start_offset": 0,
+        "end_offset": 25
+      },
+      {
+        "id": "e-focus-a",
+        "text_layer_id": "tl-9cad32159aac464dd8df0be7",
+        "page": 1,
+        "quotation": "Ložisko A je v levém laloku",
+        "start_offset": 26,
+        "end_offset": 53
+      },
+      {
+        "id": "e-size-a",
+        "text_layer_id": "tl-9cad32159aac464dd8df0be7",
+        "page": 1,
+        "quotation": "rozměry 11 × 15 mm",
+        "start_offset": 55,
+        "end_offset": 73
+      },
+      {
+        "id": "e-gleason",
+        "text_layer_id": "tl-9cad32159aac464dd8df0be7",
+        "page": 1,
+        "quotation": "Gleason 3+4=7",
+        "start_offset": 75,
+        "end_offset": 88
+      },
+      {
+        "id": "e-focus-b",
+        "text_layer_id": "tl-9cad32159aac464dd8df0be7",
+        "page": 1,
+        "quotation": "Ložisko B je v pravém laloku",
+        "start_offset": 90,
+        "end_offset": 118
+      },
+      {
+        "id": "e-size-b",
+        "text_layer_id": "tl-9cad32159aac464dd8df0be7",
+        "page": 1,
+        "quotation": "rozměr 7 mm",
+        "start_offset": 120,
+        "end_offset": 131
+      },
+      {
+        "id": "e-margin-negative",
+        "text_layer_id": "tl-9cad32159aac464dd8df0be7",
+        "page": 1,
+        "quotation": "Na okraji není nádor.",
+        "start_offset": 133,
+        "end_offset": 154
+      },
+      {
+        "id": "e-classification",
+        "text_layer_id": "tl-9cad32159aac464dd8df0be7",
+        "page": 1,
+        "quotation": "pT2c, L0, V0, R0",
+        "start_offset": 168,
+        "end_offset": 184
+      },
+      {
+        "id": "e-grade-group",
+        "text_layer_id": "tl-9cad32159aac464dd8df0be7",
+        "page": 1,
+        "quotation": "Grade Group 2",
+        "start_offset": 186,
+        "end_offset": 199
+      }
+    ],
+    "subjects": [
+      {
+        "id": "specimen-1",
+        "kind": "specimen",
+        "label": "Preparát: prostatektomie",
+        "identification_basis": "explicit",
+        "parent_id": null,
+        "evidence_ids": [
+          "e-specimen"
+        ]
+      },
+      {
+        "id": "focus-a",
+        "kind": "tumour_focus",
+        "label": "Ložisko A",
+        "identification_basis": "explicit",
+        "parent_id": "specimen-1",
+        "evidence_ids": [
+          "e-focus-a"
+        ]
+      },
+      {
+        "id": "focus-b",
+        "kind": "tumour_focus",
+        "label": "Ložisko B",
+        "identification_basis": "explicit",
+        "parent_id": "specimen-1",
+        "evidence_ids": [
+          "e-focus-b"
+        ]
+      }
+    ],
+    "coverage": [
+      {
+        "id": "cov-specimen-1-classification_l",
+        "subject_id": "specimen-1",
+        "property": "classification_l",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-specimen-1-classification_pm",
+        "subject_id": "specimen-1",
+        "property": "classification_pm",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-specimen-1-classification_pn",
+        "subject_id": "specimen-1",
+        "property": "classification_pn",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-specimen-1-classification_pt",
+        "subject_id": "specimen-1",
+        "property": "classification_pt",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-specimen-1-classification_r",
+        "subject_id": "specimen-1",
+        "property": "classification_r",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-specimen-1-classification_v",
+        "subject_id": "specimen-1",
+        "property": "classification_v",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-specimen-1-conclusion_text",
+        "subject_id": "specimen-1",
+        "property": "conclusion_text",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-specimen-1-extraprostatic_extension",
+        "subject_id": "specimen-1",
+        "property": "extraprostatic_extension",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-specimen-1-grade_group",
+        "subject_id": "specimen-1",
+        "property": "grade_group",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-specimen-1-histology",
+        "subject_id": "specimen-1",
+        "property": "histology",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-specimen-1-icd_o",
+        "subject_id": "specimen-1",
+        "property": "icd_o",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-specimen-1-lymph_nodes_examined",
+        "subject_id": "specimen-1",
+        "property": "lymph_nodes_examined",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-specimen-1-lymph_nodes_positive",
+        "subject_id": "specimen-1",
+        "property": "lymph_nodes_positive",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-specimen-1-multifocality",
+        "subject_id": "specimen-1",
+        "property": "multifocality",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-specimen-1-perineural_invasion",
+        "subject_id": "specimen-1",
+        "property": "perineural_invasion",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-specimen-1-procedure",
+        "subject_id": "specimen-1",
+        "property": "procedure",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-specimen-1-reported_lesion_count",
+        "subject_id": "specimen-1",
+        "property": "reported_lesion_count",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-specimen-1-seminal_vesicle_invasion",
+        "subject_id": "specimen-1",
+        "property": "seminal_vesicle_invasion",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-a-anteroposterior",
+        "subject_id": "focus-a",
+        "property": "anteroposterior",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-a-dimensions",
+        "subject_id": "focus-a",
+        "property": "dimensions",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-a-dominant",
+        "subject_id": "focus-a",
+        "property": "dominant",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-a-extraprostatic_extension",
+        "subject_id": "focus-a",
+        "property": "extraprostatic_extension",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-a-gleason_patterns",
+        "subject_id": "focus-a",
+        "property": "gleason_patterns",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-a-gleason_score",
+        "subject_id": "focus-a",
+        "property": "gleason_score",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-a-grade_group",
+        "subject_id": "focus-a",
+        "property": "grade_group",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-a-histology_type",
+        "subject_id": "focus-a",
+        "property": "histology_type",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-a-laterality",
+        "subject_id": "focus-a",
+        "property": "laterality",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-a-level",
+        "subject_id": "focus-a",
+        "property": "level",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-a-perineural_invasion",
+        "subject_id": "focus-a",
+        "property": "perineural_invasion",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-a-reported_label",
+        "subject_id": "focus-a",
+        "property": "reported_label",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-a-textual_location",
+        "subject_id": "focus-a",
+        "property": "textual_location",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-a-zone",
+        "subject_id": "focus-a",
+        "property": "zone",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-b-anteroposterior",
+        "subject_id": "focus-b",
+        "property": "anteroposterior",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-b-dimensions",
+        "subject_id": "focus-b",
+        "property": "dimensions",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-b-dominant",
+        "subject_id": "focus-b",
+        "property": "dominant",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-b-extraprostatic_extension",
+        "subject_id": "focus-b",
+        "property": "extraprostatic_extension",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-b-gleason_patterns",
+        "subject_id": "focus-b",
+        "property": "gleason_patterns",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-b-gleason_score",
+        "subject_id": "focus-b",
+        "property": "gleason_score",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-b-grade_group",
+        "subject_id": "focus-b",
+        "property": "grade_group",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-b-histology_type",
+        "subject_id": "focus-b",
+        "property": "histology_type",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-b-laterality",
+        "subject_id": "focus-b",
+        "property": "laterality",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-b-level",
+        "subject_id": "focus-b",
+        "property": "level",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-b-perineural_invasion",
+        "subject_id": "focus-b",
+        "property": "perineural_invasion",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-b-reported_label",
+        "subject_id": "focus-b",
+        "property": "reported_label",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-b-textual_location",
+        "subject_id": "focus-b",
+        "property": "textual_location",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      },
+      {
+        "id": "cov-focus-b-zone",
+        "subject_id": "focus-b",
+        "property": "zone",
+        "checked": true,
+        "source_complete": true,
+        "rationale": "Complete synthetic report checked."
+      }
+    ],
+    "observations": [
+      {
+        "id": "obs-focus-a-dimensions",
+        "subject_id": "focus-a",
+        "property": "dimensions",
+        "status": "recorded",
+        "basis": "normalized",
+        "value": {
+          "type": "dimensions",
+          "measurements": [
+            {
+              "value": 11,
+              "unit": "mm"
+            },
+            {
+              "value": 15,
+              "unit": "mm"
+            }
+          ],
+          "original_wording": "rozměry 11 × 15 mm"
+        },
+        "evidence_ids": [
+          "e-size-a"
+        ],
+        "review_status": "unreviewed",
+        "certainty": {
+          "extraction": "unassessed",
+          "interpretation": "unassessed"
+        }
+      },
+      {
+        "id": "obs-focus-a-location",
+        "subject_id": "focus-a",
+        "property": "textual_location",
+        "status": "recorded",
+        "basis": "explicit",
+        "value": {
+          "type": "location",
+          "description": "v levém laloku",
+          "original_wording": "Ložisko A je v levém laloku"
+        },
+        "evidence_ids": [
+          "e-focus-a"
+        ],
+        "review_status": "unreviewed",
+        "certainty": {
+          "extraction": "unassessed",
+          "interpretation": "unassessed"
+        }
+      },
+      {
+        "id": "obs-focus-a-patterns",
+        "subject_id": "focus-a",
+        "property": "gleason_patterns",
+        "status": "recorded",
+        "basis": "explicit",
+        "value": {
+          "type": "gleason_patterns",
+          "original_wording": "Gleason 3+4=7",
+          "primary": {
+            "pattern": 3
+          },
+          "secondary": {
+            "pattern": 4
+          }
+        },
+        "evidence_ids": [
+          "e-gleason"
+        ],
+        "review_status": "unreviewed",
+        "certainty": {
+          "extraction": "unassessed",
+          "interpretation": "unassessed"
+        }
+      },
+      {
+        "id": "obs-focus-a-score",
+        "subject_id": "focus-a",
+        "property": "gleason_score",
+        "status": "recorded",
+        "basis": "explicit",
+        "value": {
+          "type": "gleason_score",
+          "primary_pattern": 3,
+          "secondary_pattern": 4,
+          "total": 7,
+          "original_wording": "Gleason 3+4=7"
+        },
+        "evidence_ids": [
+          "e-gleason"
+        ],
+        "review_status": "unreviewed",
+        "certainty": {
+          "extraction": "unassessed",
+          "interpretation": "unassessed"
+        }
+      },
+      {
+        "id": "obs-focus-b-dimensions",
+        "subject_id": "focus-b",
+        "property": "dimensions",
+        "status": "recorded",
+        "basis": "normalized",
+        "value": {
+          "type": "dimensions",
+          "measurements": [
+            {
+              "value": 7,
+              "unit": "mm"
+            }
+          ],
+          "original_wording": "rozměr 7 mm"
+        },
+        "evidence_ids": [
+          "e-size-b"
+        ],
+        "review_status": "unreviewed",
+        "certainty": {
+          "extraction": "unassessed",
+          "interpretation": "unassessed"
+        }
+      },
+      {
+        "id": "obs-focus-b-location",
+        "subject_id": "focus-b",
+        "property": "textual_location",
+        "status": "recorded",
+        "basis": "explicit",
+        "value": {
+          "type": "location",
+          "description": "v pravém laloku",
+          "original_wording": "Ložisko B je v pravém laloku"
+        },
+        "evidence_ids": [
+          "e-focus-b"
+        ],
+        "review_status": "unreviewed",
+        "certainty": {
+          "extraction": "unassessed",
+          "interpretation": "unassessed"
+        }
+      },
+      {
+        "id": "obs-pt",
+        "subject_id": "specimen-1",
+        "property": "classification_pt",
+        "status": "recorded",
+        "basis": "explicit",
+        "value": {
+          "type": "classification",
+          "original_code": "pT2c"
+        },
+        "evidence_ids": [
+          "e-classification"
+        ],
+        "review_status": "unreviewed",
+        "certainty": {
+          "extraction": "unassessed",
+          "interpretation": "unassessed"
+        }
+      },
+      {
+        "id": "obs-l",
+        "subject_id": "specimen-1",
+        "property": "classification_l",
+        "status": "recorded",
+        "basis": "explicit",
+        "value": {
+          "type": "classification",
+          "original_code": "L0"
+        },
+        "evidence_ids": [
+          "e-classification"
+        ],
+        "review_status": "unreviewed",
+        "certainty": {
+          "extraction": "unassessed",
+          "interpretation": "unassessed"
+        }
+      },
+      {
+        "id": "obs-v",
+        "subject_id": "specimen-1",
+        "property": "classification_v",
+        "status": "recorded",
+        "basis": "explicit",
+        "value": {
+          "type": "classification",
+          "original_code": "V0"
+        },
+        "evidence_ids": [
+          "e-classification"
+        ],
+        "review_status": "unreviewed",
+        "certainty": {
+          "extraction": "unassessed",
+          "interpretation": "unassessed"
+        }
+      },
+      {
+        "id": "obs-r",
+        "subject_id": "specimen-1",
+        "property": "classification_r",
+        "status": "recorded",
+        "basis": "explicit",
+        "value": {
+          "type": "classification",
+          "original_code": "R0"
+        },
+        "evidence_ids": [
+          "e-classification"
+        ],
+        "review_status": "unreviewed",
+        "certainty": {
+          "extraction": "unassessed",
+          "interpretation": "unassessed"
+        }
+      },
+      {
+        "id": "obs-grade-group",
+        "subject_id": "specimen-1",
+        "property": "grade_group",
+        "status": "recorded",
+        "basis": "explicit",
+        "value": {
+          "type": "coded",
+          "code": "2",
+          "original_wording": "Grade Group 2"
+        },
+        "evidence_ids": [
+          "e-grade-group"
+        ],
+        "review_status": "unreviewed",
+        "certainty": {
+          "extraction": "unassessed",
+          "interpretation": "unassessed"
+        }
+      },
+      {
+        "id": "specimen-1-classification_pm",
+        "subject_id": "specimen-1",
+        "property": "classification_pm",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "specimen-1-classification_pn",
+        "subject_id": "specimen-1",
+        "property": "classification_pn",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "specimen-1-conclusion_text",
+        "subject_id": "specimen-1",
+        "property": "conclusion_text",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "specimen-1-extraprostatic_extension",
+        "subject_id": "specimen-1",
+        "property": "extraprostatic_extension",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "specimen-1-histology",
+        "subject_id": "specimen-1",
+        "property": "histology",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "specimen-1-icd_o",
+        "subject_id": "specimen-1",
+        "property": "icd_o",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "specimen-1-lymph_nodes_examined",
+        "subject_id": "specimen-1",
+        "property": "lymph_nodes_examined",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "specimen-1-lymph_nodes_positive",
+        "subject_id": "specimen-1",
+        "property": "lymph_nodes_positive",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "specimen-1-multifocality",
+        "subject_id": "specimen-1",
+        "property": "multifocality",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "specimen-1-perineural_invasion",
+        "subject_id": "specimen-1",
+        "property": "perineural_invasion",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "specimen-1-procedure",
+        "subject_id": "specimen-1",
+        "property": "procedure",
+        "status": "recorded",
+        "basis": "explicit",
+        "value": {
+          "type": "text",
+          "text": "prostatektomie",
+          "original_wording": "prostatektomie"
+        },
+        "evidence_ids": [
+          "e-specimen"
+        ]
+      },
+      {
+        "id": "specimen-1-reported_lesion_count",
+        "subject_id": "specimen-1",
+        "property": "reported_lesion_count",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "specimen-1-seminal_vesicle_invasion",
+        "subject_id": "specimen-1",
+        "property": "seminal_vesicle_invasion",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "focus-a-anteroposterior",
+        "subject_id": "focus-a",
+        "property": "anteroposterior",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "focus-a-dominant",
+        "subject_id": "focus-a",
+        "property": "dominant",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "focus-a-extraprostatic_extension",
+        "subject_id": "focus-a",
+        "property": "extraprostatic_extension",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "focus-a-grade_group",
+        "subject_id": "focus-a",
+        "property": "grade_group",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "focus-a-histology_type",
+        "subject_id": "focus-a",
+        "property": "histology_type",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "focus-a-laterality",
+        "subject_id": "focus-a",
+        "property": "laterality",
+        "status": "recorded",
+        "basis": "explicit",
+        "value": {
+          "type": "location",
+          "laterality": "left",
+          "original_wording": "v levém laloku"
+        },
+        "evidence_ids": [
+          "e-focus-a"
+        ]
+      },
+      {
+        "id": "focus-a-level",
+        "subject_id": "focus-a",
+        "property": "level",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "focus-a-perineural_invasion",
+        "subject_id": "focus-a",
+        "property": "perineural_invasion",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "focus-a-reported_label",
+        "subject_id": "focus-a",
+        "property": "reported_label",
+        "status": "recorded",
+        "basis": "explicit",
+        "value": {
+          "type": "text",
+          "text": "Ložisko A",
+          "original_wording": "Ložisko A"
+        },
+        "evidence_ids": [
+          "e-focus-a"
+        ]
+      },
+      {
+        "id": "focus-a-zone",
+        "subject_id": "focus-a",
+        "property": "zone",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "focus-b-anteroposterior",
+        "subject_id": "focus-b",
+        "property": "anteroposterior",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "focus-b-dominant",
+        "subject_id": "focus-b",
+        "property": "dominant",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "focus-b-extraprostatic_extension",
+        "subject_id": "focus-b",
+        "property": "extraprostatic_extension",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "focus-b-gleason_patterns",
+        "subject_id": "focus-b",
+        "property": "gleason_patterns",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "focus-b-gleason_score",
+        "subject_id": "focus-b",
+        "property": "gleason_score",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "focus-b-grade_group",
+        "subject_id": "focus-b",
+        "property": "grade_group",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "focus-b-histology_type",
+        "subject_id": "focus-b",
+        "property": "histology_type",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "focus-b-laterality",
+        "subject_id": "focus-b",
+        "property": "laterality",
+        "status": "recorded",
+        "basis": "explicit",
+        "value": {
+          "type": "location",
+          "laterality": "right",
+          "original_wording": "v pravém laloku"
+        },
+        "evidence_ids": [
+          "e-focus-b"
+        ]
+      },
+      {
+        "id": "focus-b-level",
+        "subject_id": "focus-b",
+        "property": "level",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "focus-b-perineural_invasion",
+        "subject_id": "focus-b",
+        "property": "perineural_invasion",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      },
+      {
+        "id": "focus-b-reported_label",
+        "subject_id": "focus-b",
+        "property": "reported_label",
+        "status": "recorded",
+        "basis": "explicit",
+        "value": {
+          "type": "text",
+          "text": "Ložisko B",
+          "original_wording": "Ložisko B"
+        },
+        "evidence_ids": [
+          "e-focus-b"
+        ]
+      },
+      {
+        "id": "focus-b-zone",
+        "subject_id": "focus-b",
+        "property": "zone",
+        "status": "not reported",
+        "basis": "explicit",
+        "unavailable_reason": "Complete synthetic text checked; property not stated."
+      }
+    ],
+    "issues": []
+  }
+}

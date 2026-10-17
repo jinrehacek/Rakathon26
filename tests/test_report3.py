@@ -160,3 +160,15 @@ def test_total_only_gleason_still_participates_in_grade_consistency(tmp_path):
     issues=run_checks(report,[],[])
     assert any(i['rule']['id']=='isup-grade-group' and 'f1' in i['context'] for i in issues)
     assert all('None' not in i['reason'] for i in issues)
+
+
+def test_specimen_positive_does_not_contradict_one_negative_focus(tmp_path):
+    _,report,drawing=case(tmp_path)
+    record(report,'specimen','perineural_invasion',presence('present'))
+    record(report,'f1','perineural_invasion',presence('absent'))
+    record(report,'f2','perineural_invasion',presence('present'))
+    result=interpret(report,drawing)
+    prop=next(p for p in result['lesions'][0]['properties'] if p['property']=='perineural_invasion')
+    assert prop['disposition']=='adopted' and prop['value']['value']=='absent'
+    assert any(i['kind']=='specimen_attribution' for i in result['issues'])
+    assert not any(i['kind']=='internal_conflict' for i in result['issues'])

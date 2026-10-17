@@ -26,7 +26,7 @@ from report_extractor.validation import validate_payload
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_TEXT = ROOT / "fixtures" / "synthetic_report.txt"
-FIXTURE_RESPONSE = ROOT / "fixtures" / "synthetic_response.json"
+FIXTURE_RESPONSE = ROOT / "fixtures" / "synthetic_report3_response.json"
 
 
 def text_layer_for(text: str) -> TextLayer:

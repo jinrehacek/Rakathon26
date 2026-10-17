@@ -247,7 +247,7 @@ def _specimen_proposals(report: dict, specimen_id: str, lesions: list[dict], iss
                             if o["property"] == prop and o["status"] == "recorded"]
             contradictory = [o for o in focus_values if o["value"]["value"] in {"absent", "present"} and o["value"]["value"] != value]
             propose = value == "absent" or len(lesions) == 1
-            if contradictory and target:
+            if propose and contradictory and target:
                 candidates = target.get("candidates", [{"value": deepcopy(target.get("value")), "basis": target["basis"], "supports": target["supports"]}])
                 candidates.append({"value": deepcopy(source["value"]), "basis": "inferred", "supports": [ref]})
                 target.pop("value", None)

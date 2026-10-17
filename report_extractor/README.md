@@ -49,11 +49,13 @@ For a synthetic fixture run with no network:
 ```sh
 uv run python -m report_extractor run \
   --input fixtures/synthetic_report.txt --mode fixture \
-  --fixture-file fixtures/synthetic_response.json \
+  --fixture-file fixtures/synthetic_report3_response.json \
   --output-dir Other/output/fixture-demo
 uv run pytest tests -q
 ```
 
+The extractor uses `synthetic_report3_response.json`; the original
+`synthetic_response.json` remains the legacy UI demonstration fixture.
 Fixtures declare their prompt/contract versions and exact text hash. Tests inject
 hand-written combined model responses through the same Gemini adapter. They cover
 retry bounds, evidence anchoring, source ordering, issue retention, publication,
