@@ -42,8 +42,10 @@ def sector(zone="pzpl", level="mid", side="left", share=1):
 
 
 def mark(mid="mid.m1", side="left", zone="pzpl", level="mid"):
+    named = sector(zone, level, side)
     return {"id": mid, "view": mid.split(".")[0], "kind": "closed outline", "runs_found": 3,
-            "sectors_named": [], "sectors_polygon": [sector(zone, level, side)], "sectors_cv": [],
+            "sectors_named_by_run": [[named]] * 3, "sectors_named": [named],
+            "sectors_polygon": [sector(zone, level, side)], "sectors_cv": [],
             "cv_regions": [], "redcap": ["unfiltered_code"]}
 
 
@@ -62,15 +64,36 @@ def interpret(r, d, fixed=None, previous=None):
 
 
 class CandidateTests(unittest.TestCase):
-    def test_sector_threshold_named_or_and_cv_maybe(self):
+    def test_sector_needs_share_and_two_named_runs(self):
         m = mark()
-        m["sectors_polygon"] = [sector(share=.15), sector("pza", share=.1499)]
-        m["sectors_cv"] = [sector("tzp", share=1)]
-        m["sectors_named"] = [sector("cz", share=0)]
+        pzpl, pza, cz, tzp = sector(), sector("pza"), sector("cz"), sector("tzp")
+        m["sectors_polygon"] = [sector(share=.15), sector("pza", share=.1499), sector("tzp", share=.5)]
+        m["sectors_cv"] = [sector("tza", share=1)]
+        # cz is named twice but not under the polygon; tzp is under it but named once.
+        m["sectors_named_by_run"] = [[pzpl, pza, cz], [pzpl, pza, cz], [pzpl, tzp]]
+        m["sectors_named"] = [pzpl, pza, cz, tzp]
         result = build_candidates(drawing(m))[0]
-        self.assertEqual(result["sectors_in"], ["cz_mid_ls", "pzpl_mid_ls"])
-        self.assertEqual(result["sectors_maybe"], ["pza_mid_ls", "tzp_mid_ls"])
+        self.assertEqual(result["sectors_in"], ["pzpl_mid_ls"])
+        self.assertEqual(result["sectors_maybe"], ["cz_mid_ls", "pza_mid_ls", "tza_mid_ls", "tzp_mid_ls"])
         self.assertNotIn("unfiltered_code", result["sectors_in"])
+
+    def test_mark_without_polygon_uses_named_runs(self):
+        m = mark()
+        once, twice = sector("pza"), sector()
+        m["sectors_polygon"] = []
+        m["sectors_named_by_run"] = [[twice, once], [twice], []]
+        m["sectors_named"] = [twice, once]
+        result = build_candidates(drawing(m))[0]
+        self.assertEqual(result["sectors_in"], ["pzpl_mid_ls"])
+        self.assertEqual(result["sectors_maybe"], ["pza_mid_ls"])
+
+    def test_traced_polygon_without_sector_contact_keeps_named_as_maybe(self):
+        m = mark()
+        m["polygon_ref"] = [[0, 0], [5, 0], [5, 5]]
+        m["sectors_polygon"] = []
+        result = build_candidates(drawing(m))[0]
+        self.assertEqual(result["sectors_in"], [])
+        self.assertEqual(result["sectors_maybe"], ["pzpl_mid_ls"])
 
     def test_longitudinal_levels_and_group_dependencies(self):
         d = drawing(mark(), mark("coronal.m1", level="apex"))
@@ -91,6 +114,7 @@ class CandidateTests(unittest.TestCase):
     def test_missing_redcap_uses_crosswalk(self):
         m = mark()
         del m["sectors_polygon"][0]["redcap"]
+        del m["sectors_named"][0]["redcap"]
         self.assertEqual(build_candidates(drawing(m))[0]["sectors_in"], ["pzpl_mid_ls"])
 
 
@@ -193,7 +217,7 @@ class MatchingMetadataTests(unittest.TestCase):
         r = report("a")
         locate(r, "a")
         candidate = build_candidates(drawing(mark()))[0]
-        for field in ("sides", "levels", "zones", "anteroposterior"):
+        for field in ("sides", "levels", "zones", "exact_zones", "anteroposterior"):
             candidate[field] = []
         candidate["side_basis"] = "inferred"
         score, comparisons = pair_score(r, {"id": "a"}, candidate)

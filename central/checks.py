@@ -5,7 +5,7 @@ promotes an item into another scope, and never treats missing or unassessed
 information as a negative finding. Every result is a ``check_failed`` issue with
 the rule's source and edition attached.
 
-The caller may pass either the report-2 bundle or its ``extraction`` object.
+The caller may pass either the report-3 bundle or its ``extraction`` object.
 Reviewer overrides are read from the supplied computation copy, including
 ``review_decision`` entries; this module does not filter them out.
 """
@@ -71,8 +71,8 @@ def _observations_for(extraction: dict, subject_id: str | None, property_name: s
 
 
 def _recorded(extraction: dict, subject_id: str | None, property_name: str) -> dict | None:
-    return next((item for item in _observations_for(extraction, subject_id, property_name)
-                 if item.get("status") == "recorded"), None)
+    from .matching import observed
+    return observed({"extraction": {"observations": _observations(extraction)}}, subject_id, property_name)
 
 
 def _presence(observation: dict | None) -> str | None:
@@ -96,7 +96,7 @@ def _pattern(*candidates: Any) -> int | None:
     return None
 
 
-def _gleason_patterns(observation: dict | None) -> tuple[int, int, int] | None:
+def _gleason_patterns(observation: dict | None) -> tuple[int | None, int | None, int] | None:
     if not observation or observation.get("status") != "recorded":
         return None
     value = observation.get("value")
@@ -105,6 +105,9 @@ def _gleason_patterns(observation: dict | None) -> tuple[int, int, int] | None:
     primary = _pattern(value.get("primary"), value.get("primary_pattern"))
     secondary = _pattern(value.get("secondary"), value.get("secondary_pattern"))
     if primary is None or secondary is None:
+        total = value.get("total")
+        if value.get("type") == "gleason_score" and type(total) is int and 2 <= total <= 10:
+            return None, None, total
         return None
     return primary, secondary, primary + secondary
 
@@ -129,7 +132,7 @@ def _grade_group(observation: dict | None) -> int | None:
     return None
 
 
-def _grade_group_from_gleason(patterns: tuple[int, int, int]) -> int | None:
+def _grade_group_from_gleason(patterns: tuple[int | None, int | None, int]) -> int | None:
     primary, secondary, total = patterns
     if total <= 6:
         return 1
@@ -146,7 +149,7 @@ def _grade_group_from_gleason(patterns: tuple[int, int, int]) -> int | None:
     return None
 
 
-def _gleason_for(extraction: dict, subject_id: str) -> tuple[tuple[int, int, int] | None, dict | None]:
+def _gleason_for(extraction: dict, subject_id: str) -> tuple[tuple[int | None, int | None, int] | None, dict | None]:
     patterns_observation = _recorded(extraction, subject_id, "gleason_patterns")
     patterns = _gleason_patterns(patterns_observation)
     if patterns is not None:
@@ -193,12 +196,14 @@ def _grade_issues(extraction: dict, subjects: list[dict]) -> list[dict]:
             continue
         primary, secondary, total = patterns
         scope = "Focus" if kind == "tumour_focus" else "Specimen"
+        score_description = (f"{primary}+{secondary}={total}" if primary is not None and secondary is not None
+                             else f"total {total} without stated component patterns")
         result.append(_issue(
             GRADE_RULE, "question",
             _context(subject_id, patterns_observation.get("id") if patterns_observation else None,
                      grade_observation.get("id") if grade_observation else None),
             f"{scope} {subject_id!r} reports grade group {reported} but Gleason "
-            f"{primary}+{secondary}={total} maps to grade group {expected} under ISUP 2014.",
+            f"{score_description} maps to grade group {expected} under ISUP 2014.",
         ))
     return result
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import uuid
 from datetime import UTC, datetime
@@ -24,7 +25,7 @@ def _unique_output_dir(output_root: str | Path, prefix: str) -> Path:
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="report-extractor",
-        description="Offline report text ingestion and fixture-backed review output.",
+        description="Czech OCR and report-3 extraction for central review.",
     )
     commands = parser.add_subparsers(dest="command", required=True)
     ingest = commands.add_parser(
@@ -41,9 +42,15 @@ def _parser() -> argparse.ArgumentParser:
         "run", help="Validate an explicitly selected fixture or disabled external mode."
     )
     run.add_argument("--input", required=True, type=Path)
-    run.add_argument("--mode", choices=("fixture", "external"), required=True)
+    run.add_argument("--mode", choices=("fixture", "gemini", "external"), required=True)
     run.add_argument("--fixture-file", type=Path)
     run.add_argument("--output-dir", type=Path, default=Path("Other/output"))
+    case = commands.add_parser("case", help="Extract the manifest's report.jpg and publish its case-level report.json.")
+    case.add_argument("case_id")
+    case.add_argument("--manifest", type=Path, required=True)
+    case.add_argument("--mode", choices=("gemini", "fixture"), default="gemini")
+    case.add_argument("--fixture-file", type=Path)
+    case.add_argument("--output-dir", type=Path, default=Path("Other/output/report"))
     return parser
 
 
@@ -53,6 +60,17 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(ExtractionProposal.model_json_schema(), ensure_ascii=False, indent=2))
         return 0
     try:
+        if args.command == "case":
+            if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", args.case_id):
+                raise IngestionError("Case ID must be a single safe folder name.")
+            manifest = json.loads(args.manifest.read_text())
+            relative = manifest["cases"][args.case_id]["report"]
+            source = (args.manifest.parent / relative).resolve(strict=True)
+            expected = (args.manifest.parent / args.case_id / "report.jpg").resolve(strict=True)
+            if source != expected or not source.is_relative_to(args.manifest.parent.resolve()):
+                raise IngestionError("Manifest report must be <case>/report.jpg within its batch.")
+            args.input = source
+            args.output_dir = args.output_dir / args.case_id
         text_layer = build_text_layer(args.input)
         if args.command == "ingest":
             output = _unique_output_dir(args.output_dir, "text-layer")
@@ -77,12 +95,19 @@ def main(argv: list[str] | None = None) -> int:
                     "Fixture mode requires --fixture-file and exact source-text hash match."
                 )
             extractor = FixtureExtractor(args.fixture_file)
+        elif args.mode == "gemini":
+            from .gemini import GeminiExtractor
+            extractor = GeminiExtractor()
         else:
             extractor = ExternalExtractorDisabled()
         output = run_extraction(text_layer, extractor, args.output_dir)
         print(f"Mode: {extractor.mode}; local review output: {output}")
+        bundle = json.loads((output / "report.json").read_text())
+        if not bundle["extraction"]["complete"]:
+            print("Extraction incomplete; case-level report.json was not updated.", file=sys.stderr)
+            return 2
         return 0
-    except (IngestionError, OSError, ValueError, RuntimeError) as exc:
+    except (KeyError, IngestionError, OSError, ValueError, RuntimeError) as exc:
         print(f"report-extractor: {exc}", file=sys.stderr)
         return 2
 
