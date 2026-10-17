@@ -53,7 +53,7 @@ VIEWS: dict[str, View] = {view.name: view for view in (
     View("base", (750, 330, 590, 460), "cross-sectional", "base", 1061, True),
     View("mid", (740, 770, 590, 470), "cross-sectional", "mid", 1059, True),
     View("apex", (800, 1200, 510, 380), "cross-sectional", "apex", 1059, True),
-    View("urethra", (980, 1560, 170, 170), "schematic", "apex to base", 1061, False),
+    View("urethra", (980, 1560, 170, 170), "schematic", "urethra", 1061, False),
 )}
 AXIAL_BLOCK = tuple(name for name, view in VIEWS.items() if view.axial_block)
 

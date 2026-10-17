@@ -85,6 +85,8 @@ def call(client: httpx.Client, model: str, key: str, body: dict, schema: type[T]
          sleeper=time.sleep, attempts: int = 2) -> tuple[T | None, list[dict]]:
     """POST once, retry once on transport, HTTP 408/429/5xx or invalid JSON. Saves every raw response in out."""
     out.mkdir(parents=True, exist_ok=True)
+    for stale in out.glob("attempt_*"):  # replay must never pick up an answer from an earlier call
+        stale.unlink()
     save(out / "request.json", {"model": model, **request_record(body)})
     history = []
     for attempt in range(1, attempts + 1):

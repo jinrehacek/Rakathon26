@@ -91,3 +91,22 @@ def test_llm_logs_images_as_hashes_and_never_the_key(tmp_path):
         parsed, history = llm.call(client, "m", "SECRETKEY", body, Mark, tmp_path, sleeper=lambda s: None)
     assert parsed is None and len(history) == 2
     assert all("SECRETKEY" not in p.read_text() for p in tmp_path.iterdir())
+
+
+def test_a_new_call_clears_old_attempts(tmp_path):
+    import httpx
+    (tmp_path / "attempt_2_response.json").write_text("{}")
+    good = {"candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": '{"id": "base.m1", "view": "base", "kind": "other", "runs_found": 1}'}]}}]}
+    body = llm.request_body([{"text": "p"}], Mark)
+    with httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(200, json=good))) as client:
+        parsed, _ = llm.call(client, "m", "k", body, Mark, tmp_path)
+    assert parsed.id == "base.m1" and not (tmp_path / "attempt_2_response.json").exists()
+    assert llm.replay(tmp_path, Mark).id == "base.m1"
+
+
+def test_view_level_is_one_of_its_region_levels_where_the_view_has_one_level():
+    # The prompt names the view's level; Gemini copies it into sectors, so it must be a valid enum value.
+    for name, view in reference.VIEWS.items():
+        levels = {r.level for r in reference.regions_for(name)}
+        if len(levels) == 1:
+            assert view.level in levels, name
