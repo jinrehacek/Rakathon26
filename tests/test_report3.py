@@ -107,3 +107,46 @@ def test_total_only_gleason_does_not_invent_patterns(tmp_path):
     loaded=load_report(path)
     score=observed(loaded,'f1','gleason_score')['value']
     assert score['total']==6 and score.get('primary_pattern') is None and score.get('secondary_pattern') is None
+
+
+def test_exact_zone_ap_conflict_uses_zone_evidence_without_crashing(tmp_path):
+    _, report, drawing=case(tmp_path)
+    record(report,'f1','zone',{'type':'location','zones':['pza'],'original_wording':'PZa'})
+    candidates=build_candidates(drawing)
+    fixed=match(report,candidates,fixed_assignment={'f1':['c1'],'f2':['c2']})
+    result=build_interpretation(report,drawing,candidates,fixed)
+    issue=next(i for i in result['issues'] if i['kind']=='ap_conflict')
+    assert 'report:f1-zone' in issue['context']
+    ap_comparison=next(c for c in fixed['comparisons'] if c['hypothesis']=='h1' and c['property']=='anteroposterior')
+    assert ap_comparison['report_ref']=='report:f1-zone'
+    zone=next(p for p in result['lesions'][0]['properties'] if p['property']=='zone')
+    assert zone['candidates'][1]['value']['zones']==['pzpl']
+
+
+def test_conflicting_ap_is_not_resolved_by_an_exact_zone(tmp_path):
+    _,report,_=case(tmp_path)
+    record(report,'f1','zone',{'type':'location','zones':['pza'],'original_wording':'PZa'})
+    anterior=record(report,'f1','anteroposterior',{'type':'location','anteroposterior':'anterior','original_wording':'ventralne'})
+    posterior=copy.deepcopy(anterior)
+    posterior.update(id='posterior-alternative',value={'type':'location','anteroposterior':'posterior','original_wording':'dorzalne'})
+    report['extraction']['observations'].append(posterior)
+    assert location(report,'f1')['anteroposterior']==set()
+    report['extraction']['observations'].reverse()
+    assert location(report,'f1')['anteroposterior']==set()
+
+
+def test_doctor_confirmation_accepts_specimen_proposal_and_keeps_source(tmp_path):
+    from central.pipeline import run_case
+    path,report,_=case(tmp_path)
+    record(report,'specimen','extraprostatic_extension',presence('absent'))
+    path.write_text(json.dumps(report))
+    first=run_case('synthetic-case',root=tmp_path,use_llm=False)
+    decisions=first.parent.parent/'decisions.json'
+    decisions.write_text(json.dumps({'schema_version':'decisions-1','decisions':[{
+        'id':'confirm-epe','kind':'set_value','target':{'lesion':'L1','property':'extraprostatic_extension'},
+        'value':{'status':'recorded','value':presence('absent')},'reviewer':'synthetic-doctor',
+        'timestamp':'2026-10-17T10:00:00Z','reason':'Reviewed specimen inference.'}]}))
+    reviewed=json.loads(run_case('synthetic-case',root=tmp_path,use_llm=False).read_text())
+    prop=next(p for p in reviewed['lesions'][0]['properties'] if p['property']=='extraprostatic_extension')
+    assert prop['review_status']=='accepted' and prop['requires_confirmation'] is False
+    assert prop['source_assessment']['requires_confirmation'] is True

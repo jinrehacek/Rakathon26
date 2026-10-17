@@ -286,6 +286,8 @@ def apply_interpretation_decisions(result: dict, decisions: list[dict], *,
             status, value = validate_override(target["property"], decision["value"])
             source_prop = next((p for p in sources[lesion["id"]]["properties"] if p["property"] == target["property"]), prop)
             prop["source_assessment"] = deepcopy(source_prop)
+            if source_prop.get("requires_confirmation"):
+                prop["requires_confirmation"] = False
             for field in ("unavailable_reason", "source_certainty", "evidence_ids", "derived_from", "source_inputs", "candidates"):
                 prop.pop(field, None)
             prop.update(status=status, value=value, basis="inferred", tags=["reviewer selection"],

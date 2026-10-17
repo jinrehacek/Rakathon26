@@ -46,10 +46,19 @@ def location(report: dict, subject_id: str) -> dict[str, set[str]]:
         if prop == "laterality" and "bilateral" in values:
             values = {"right", "left"}
         result[prop] = values
-    if not result["anteroposterior"] and result["zone"]:
+    ap_observations = [o for o in observations(report, subject_id) if o["property"] == "anteroposterior"]
+    if not result["anteroposterior"] and result["zone"] and len(ap_observations) <= 1:
         from .rules import ZONE_TABLE
         result["anteroposterior"] = {ZONE_TABLE[z][1] for z in result["zone"] if z in ZONE_TABLE and ZONE_TABLE[z][1]}
     return result
+
+
+def location_source(report: dict, subject_id: str, prop: str) -> dict | None:
+    direct = property_observation(report, subject_id, prop)
+    if prop == "anteroposterior" and (direct is None or direct["status"] != "recorded"):
+        if location(report, subject_id)["anteroposterior"]:
+            return observed(report, subject_id, "zone")
+    return direct
 
 
 def zones_overlap(text: set[str], exact: set[str], broad: set[str]) -> bool:
@@ -131,7 +140,7 @@ def pair_score(report: dict, focus: dict, candidate: dict, size_bonus: bool = Fa
     comparisons = []
     total = 0.0
     for prop, field in LOCATION_PROPERTIES:
-        obs = property_observation(report, focus["id"], prop)
+        obs = location_source(report, focus["id"], prop)
         report_input = _report_input(obs)
         text, drawing = loc[prop], set(candidate.get("exact_zones", candidate.get(field, [])) if prop == "zone" else candidate.get(field, []))
         label = PROPERTY_LABELS[prop]
@@ -193,9 +202,11 @@ def pair_score(report: dict, focus: dict, candidate: dict, size_bonus: bool = Fa
         total += score
         comparisons.append({
             "property": prop, "candidate": candidate["id"], "score": score,
-            "inputs": ["report:" + o["id"] for o in observations(report, focus["id"]) if o["property"] == prop] + candidate["marks"],
+            "inputs": ([report_input["ref"]] if report_input else ["report:" + o["id"] for o in observations(report, focus["id"]) if o["property"] == prop]) + candidate["marks"],
             "report_ref": report_input["ref"] if report_input else None,
             "report_status": obs["status"] if obs else None,
+            "report_source_property": obs["property"] if obs else None,
+            "text_basis": "inferred" if obs and obs["property"] != prop else obs["basis"] if obs else None,
             "input_observations": [report_input] if report_input else [],
             "text": sorted(text), "drawing": sorted(drawing), "outcome": outcome,
             "rule": f"{RULES_VERSION}/{prop}",

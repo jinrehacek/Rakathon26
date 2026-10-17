@@ -392,7 +392,7 @@ class PipelineTests(unittest.TestCase):
         result = build_interpretation(report, drawing, candidates, matching)
         prop = next(p for p in result["lesions"][0]["properties"] if p["property"] == "zone")
         self.assertEqual(prop["disposition"], "unresolved")
-        self.assertEqual([c["value"]["zones"] for c in prop["candidates"]], [["pz"], ["tz"]])
+        self.assertEqual([c["value"]["zones"] for c in prop["candidates"]], [["pz"], ["tzp"]])
         self.assertTrue(any(i["kind"] == "other" and "zone disagree" in i.get("explanation", "") for i in result["issues"]))
         self.assertEqual(result["lesions"][0]["sectors"]["confidence"]["final"], "low")
 

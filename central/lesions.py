@@ -8,7 +8,7 @@ from .candidates import crosswalk_rows
 from .confidence import confidence, sector_confidence, text_confidence
 from .issues import (candidate_signals, filter_signals, issue, number_issues,
                      size_note_issues)
-from .matching import location, observations, observed, subjects, sides_compatible, zones_overlap
+from .matching import location, observations, observed, subjects, sides_compatible, zones_overlap, location_source
 from .rules import ZONE_TABLE
 
 
@@ -126,19 +126,29 @@ def build_interpretation(report: dict, drawing: dict, candidates: list[dict], ma
                                       ("level", bool(chosen and loc["level"] and levels and loc["level"] - levels), "level_conflict")):
             if not conflict:
                 continue
-            obs = observed(report, fid, prop)
+            obs = location_source(report, fid, prop)
             issues.append(issue(kind, "question", [lesion["id"], "report:" + obs["id"]] + lesion["marks"],
                                 f"Report and drawing {prop} disagree; review both source values."))
             for assessment in lesion["properties"]:
-                if assessment["property"] == prop and "value" in assessment:
-                    value = assessment.pop("value")
+                if assessment["property"] == prop:
+                    if "value" in assessment:
+                        value = assessment.pop("value")
+                        text_basis = assessment["basis"]
+                    elif prop == "anteroposterior" and obs["property"] == "zone":
+                        assessment["source_assessment"] = deepcopy(assessment)
+                        value = {"type": "location", "anteroposterior": next(iter(loc[prop])),
+                                 "original_wording": obs["value"]["original_wording"]}
+                        text_basis = "inferred"
+                        assessment["supports"] = ["report:" + obs["id"]]
+                    else:
+                        continue
                     drawing_value = {"type": "location", {"laterality": "laterality", "level": "levels", "zone": "zones", "anteroposterior": "anteroposterior"}[prop]:
-                                     sorted(sides if prop == "laterality" else levels if prop == "level" else zones if prop == "zone" else aps)}
+                                     sorted(sides if prop == "laterality" else levels if prop == "level" else (exact_zones or zones) if prop == "zone" else aps)}
                     if prop not in {"level", "zone"}:
                         drawing_value[prop] = ("bilateral" if prop == "laterality" and len(sides) > 1 else
                                                next(iter(sides if prop == "laterality" else aps)))
                     assessment.update(disposition="unresolved", candidates=[
-                        {"value": value, "supports": assessment["supports"], "basis": assessment["basis"]},
+                        {"value": value, "supports": assessment["supports"], "basis": text_basis},
                         {"value": drawing_value, "supports": lesion["marks"], "basis": "inferred"}],
                         opposes=lesion["marks"], rationale="Conflicting source values remain unresolved.",
                         confidence=confidence("conflict" if prop not in {"level", "zone"} else "low",
