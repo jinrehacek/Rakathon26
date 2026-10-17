@@ -102,8 +102,16 @@ def anchor_response(response: dict, layer: TextLayer) -> dict:
         anchors = [anchor_index[ref] for ref in subject['evidence_ids']]
         offsets = [a['start_offset'] for a in anchors if a.get('start_offset') is not None]
         if not offsets:
-            # Guessing IDs from response order would break saved review targets.
-            raise ValueError('Subject identity requires anchored source-order evidence.')
+            supporting = [ref for obs in observations if obs['subject_id'] == subject['id']
+                          for ref in obs.get('evidence_ids', [])
+                          if ref in anchor_index and anchor_index[ref].get('start_offset') is not None]
+            if supporting:
+                first = min(supporting, key=lambda ref: anchor_index[ref]['start_offset'])
+                subject['evidence_ids'].append(first)
+                offsets = [anchor_index[first]['start_offset']]
+            else:
+                # Guessing IDs from response order would break saved review targets.
+                raise ValueError(f"Subject {subject['id']} requires anchored source-order evidence.")
         return min(offsets)
 
     def letters(number):

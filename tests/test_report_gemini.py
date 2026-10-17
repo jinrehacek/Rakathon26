@@ -180,3 +180,15 @@ def test_invalid_issue_payload_and_old_contract_never_replace_good_output(tmp_pa
     run=run_extraction(layer,GeminiExtractor(key='key',transport=lambda b,k:response(raw)),path.parent)
     bundle=json.loads((run/'report.json').read_text())
     assert not bundle['extraction']['complete'] and any(i['item_type']=='issue' for i in bundle['quarantine'])
+
+
+def test_source_order_can_use_a_subjects_anchored_observation(tmp_path):
+    path,layer,raw=prepared(tmp_path)
+    raw['extraction']['evidence'][1]['quotation']='unanchored identification reading'
+    raw['extraction']['evidence'].append({'id':'grounded-first','quotation':'vpravo','image_region':REGION})
+    for obs in raw['extraction']['observations']:
+        if obs['subject_id']=='f1' and obs['status']=='recorded':obs['evidence_ids']=['grounded-first']
+    run=run_extraction(layer,GeminiExtractor(key='key',transport=lambda b,k:response(raw)),path.parent)
+    bundle=load_report(run/'report.json')
+    assert [s['id'] for s in bundle['extraction']['subjects']]==['specimen','focus-a','focus-b']
+    assert next(o for o in bundle['extraction']['observations'] if o['id']=='f1-laterality')['subject_id']=='focus-a'

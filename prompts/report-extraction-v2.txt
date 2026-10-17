@@ -19,7 +19,13 @@ dominance. Keep original report labels in reported_label.
 Every required property in the provided catalogue needs an observation. When the
 text does not mention it use status 'not reported', no value, no evidence_ids and
 a coverage-backed unavailable_reason. Include a complete checked coverage entry
-for that subject-property. Explicit NE is recorded presence absent. Distinguish
+for that subject-property. Coverage checked=true means you SEARCHED the report,
+not that the finding is present. For an omitted property, use checked=true and
+source_complete=true after checking the complete OCR text. An unavailable field
+does not mean the source processing was incomplete. Example coverage:
+{"id":"cov1","subject_id":"local-specimen","property":"procedure",
+ "checked":true,"source_complete":true,"rationale":"Complete OCR checked; procedure not stated."}
+Explicit NE is recorded presence absent. Distinguish
 unreadable, not assessed, not applicable with evidence and reasons. Unreadable
 content may have image-only evidence with a region and no quotation. Recorded
 values always need OCR quotations. Give a relevant image region with any proposed
