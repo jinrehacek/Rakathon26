@@ -199,7 +199,7 @@ The atlas labels key 41 **Urethra**; its mapped source title is **External ureth
 sphincter**. The UI explicitly shows both source names and flags the discrepancy
 for clinical confirmation. This is not a claim that the two terms are equivalent.
 All sector names, sides, levels and hit areas still need doctor validation before
-clinical use. See the [UX + preprocessing handoff](../UX-PREPROCESS-TODO.md).
+clinical use. See the [UX + preprocessing handoff](../Other/UX-PREPROCESS-TODO.md).
 
 Run these in the developer console on the local page:
 

@@ -5,6 +5,11 @@ No database, PDF handling or external network service.
 For the supplied **artificial** hackathon scans only. Output is unreviewed and
 pseudonymized, not guaranteed anonymous.
 
+Python 3.12 and `uv` manage the environment. Pillow handles image work; the
+standard library writes the manifest, private dictionary and random case IDs.
+Dependencies are declared in [pyproject.toml](pyproject.toml) and locked in
+[uv.lock](uv.lock).
+
 ## Run
 
 Install Tesseract locally (`brew install tesseract` on macOS), then:
@@ -14,6 +19,18 @@ cd preprocess
 uv sync --python 3.12
 uv run python -I preprocess.py ../Other/data --artificial-data
 ```
+
+## Platform support
+
+Install Tesseract separately from Python. This script uses English data (`eng`)
+and has no language-selection option. The Python lockfile does not pin the
+Tesseract engine or its language data.
+
+- macOS: `brew install tesseract`
+- Debian or Ubuntu: `sudo apt install tesseract-ocr`
+- Windows: use the [Tesseract installation guide](https://tesseract-ocr.github.io/tessdoc/Installation.html) and add its binary directory to `PATH`.
+
+The recorded run was on macOS. Linux and Windows have not been validated.
 
 The script reads JPG/JPEG files recursively; originals are never modified.
 It reads printed Rakathon IDs using local OCR, pairs one report with one drawing
@@ -81,7 +98,7 @@ Optional approval is a human review record, **not guaranteed complete de-identif
 The MVP recognizes Rakathon identifiers only; real personal-identifier handling
 requires separate design and validation. No REDCap record or medical assessment
 is produced by this preprocessing UI. See the
-[UX/preprocessing checklist](../UX-PREPROCESS-TODO.md).
+[UX/preprocessing checklist](../Other/UX-PREPROCESS-TODO.md).
 
 ## Handoff
 
@@ -171,9 +188,11 @@ Keep `.preprocess-private/` local:
 Both directories are git-ignored before any output is written. The private
 mapping is plaintext, not encrypted: never share or sync it. Existing SQLite
 outputs from the earlier prototype are not used or deleted.
+The script checks with Git that these directories are ignored and untracked
+before writing.
 
 Removing recognized IDs is not a guarantee that all identifying text is removed.
-TODO for a later version: broader sensitive-information checks and manual review.
+TODO for a later version: broader sensitive-information checks and manual mask editing.
 
 ## Compare originals and back-match results
 
@@ -202,7 +221,14 @@ relationship for manual lookup. Keep the dictionary: the random UUID does not
 encode the original ID, so losing the dictionary loses the back-matching.
 Automatic merging of downstream results is not implemented.
 
-## Small synthetic check
+## Synthetic checks
+
+The 25 checks cover identifier parsing, drawing classification, focused OCR retries,
+conflict/low-confidence holds, mask coordinates and pixels, stable case IDs,
+private comparison links, upload validation, optional review/hold and ZIP hashes.
+The actual 80-image rerun is described above. Neither synthetic checks nor a
+successful pairing run establish complete identifier removal or anonymity.
+Additional batches and rotated/skewed cases remain follow-up work.
 
 ```sh
 uv run python -I -m unittest discover -s tests
