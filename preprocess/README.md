@@ -1,6 +1,7 @@
 # JPG preprocessing MVP
 
-One script using local Tesseract and Pillow. No UI, database, PDF handling, or network API.
+Local Tesseract and Pillow, with a CLI and optional loopback upload/review UI.
+No database, PDF handling or external network service.
 For the supplied **artificial** hackathon scans only. Output is unreviewed and
 pseudonymized, not guaranteed anonymous.
 
@@ -11,7 +12,7 @@ Dependencies are declared in [pyproject.toml](pyproject.toml) and locked in
 
 ## Run
 
-Install Tesseract locally (`brew install tesseract` on macOS), then:
+Install Tesseract locally (`brew install tesseract tesseract-lang` on macOS), then:
 
 ```sh
 cd preprocess
@@ -21,15 +22,16 @@ uv run python -I preprocess.py ../Other/data --artificial-data
 
 ## Platform support
 
-Install Tesseract separately from Python. This script uses English data (`eng`)
-and has no language-selection option. The Python lockfile does not pin the
+Install Tesseract separately from Python. This script uses Czech plus English data (`-l ces+eng`). Install both
+`ces` and `eng` trained data. It has no language-selection option. The Python lockfile does not pin the
 Tesseract engine or its language data.
 
-- macOS: `brew install tesseract`
-- Debian or Ubuntu: `sudo apt install tesseract-ocr`
+- macOS: `brew install tesseract tesseract-lang`
+- Debian or Ubuntu: `sudo apt install tesseract-ocr tesseract-ocr-ces tesseract-ocr-eng`
 - Windows: use the [Tesseract installation guide](https://tesseract-ocr.github.io/tessdoc/Installation.html) and add its binary directory to `PATH`.
 
-The recorded run was on macOS. Linux and Windows have not been validated.
+The earlier recorded run was on macOS. The Czech plus English run below was
+checked on Linux. Windows has not been validated.
 
 The script reads JPG/JPEG files recursively; originals are never modified.
 It reads printed Rakathon IDs using local OCR, pairs one report with one drawing
@@ -39,10 +41,65 @@ Filenames do not establish a match. It prints progress and aggregate counts,
 not OCR text or source filenames.
 
 OCR checks the whole page and retries a magnified bottom band because small IDs
-can be missed. It tries other right-angle rotations if necessary. Report headings
+can be missed. If the first pass cannot confidently identify the document and ID,
+it retries a dense page layout, a larger bottom band and focused printed-ID line
+crops. A fuzzy prefix only locates a crop; the final ID must still be literally
+read by OCR, have confidence at least 70 and agree across all detected occurrences.
+No OCR letter/digit substitutions or filename guesses are used for matching.
+It tries other right-angle rotations if necessary. Report headings
 and the drawing's Base/Mid/Apex labels suggest the document type. These are MVP
 heuristics, not medical interpretation. Unreadable, duplicate, or conflicting
 matches are skipped. Small-skew correction and exception review are deferred.
+
+## Local upload and review UI
+
+From the repository root, with local Tesseract installed:
+
+```sh
+uv run --project preprocess --python 3.12 python -I preprocess/ui.py
+```
+
+Open **http://127.0.0.1:8767/**, or run the VS Code task **Serve preprocessing
+review**. This is a loopback-only, local artificial-data tool, not a production
+patient-data service. No external model/API calls are made.
+
+1. Add the report JPGs, then add the drawing JPGs before starting; picker
+   selections accumulate into one upload. Confirm the pending file count and
+   explicitly acknowledge artificial hackathon data. Clear selection to start over.
+   **Both document types must be in the same upload**: separate processed batches
+   are not automatically combined. Matching uses printed IDs, never filenames.
+   Limits: 150 files, 25 MB each, 128 MB per multipart upload, 40 megapixels/image.
+2. Run preprocessing. Local OCR can take several minutes; another batch cannot
+   start while one is processing.
+3. Select a proposed pair. Compare both original and redacted documents, zoom or
+   open them full-size. Check identity matching, remaining identifiers, masks,
+   orientation and preserved annotations. Originals retain their upload orientation;
+   the displayed rotation describes what was applied to the redacted output.
+4. **Review is optional.** Confident pairs are ready without manual confirmation.
+   They remain explicitly **unreviewed**, not automatically approved. Optionally
+   **Mark reviewed** after checking all three review checks, or **hold** with a
+   written reason. Unknown/ambiguous inputs stay in a separate held-input list.
+   This slice does not repair pairings or draw additional masks.
+5. Download **ready pairs ZIP**. It contains confident, unheld pairs, their random
+   case IDs and a manifest. It excludes originals, private printed IDs, mapping,
+   filenames, review notes and held cases/unpaired inputs. Image hashes are
+   checked again; a changed source/output must be reprocessed before handoff.
+
+Uploads, browser-facing case snapshots, decisions and release archives stay under
+ignored `.preprocess-private/ui/`. The existing pipeline still writes its private
+dictionary and unreviewed `.preprocess-exports/` batch as before. The raw folder
+contains all confident pairs. **Use the UI's ready-pairs ZIP if any cases have
+been held**, because the ZIP respects those decisions; the raw folder is unchanged.
+Use one preprocessing process at a time; do not run the CLI concurrently with a
+web batch because both use the same local dictionary and latest-run diagnostics.
+Do not share the private UI folder. Its review history is local and unauthenticated,
+not a production clinical audit trail.
+
+Optional approval is a human review record, **not guaranteed complete de-identification**.
+The MVP recognizes Rakathon identifiers only; real personal-identifier handling
+requires separate design and validation. No REDCap record or medical assessment
+is produced by this preprocessing UI. See the
+[UX/preprocessing checklist](../Other/UX-PREPROCESS-TODO.md).
 
 ## Handoff
 
@@ -60,6 +117,80 @@ Share **only that batch folder**. Its manifest maps random case IDs to the two
 relative JPG paths. Downstream should retain that case ID in returned results.
 Nothing is sent automatically, and there is no LLM integration.
 
+### Downstream contract
+
+Both the raw folder and the extracted ZIP use
+`schema_version: "preprocess-handoff-v1"` with the same `cases` mapping:
+
+```json
+{
+  "schema_version": "preprocess-handoff-v1",
+  "data_scope": "artificial",
+  "review_status": "not_reviewed",
+  "cases": {
+    "<random-case-id>": {
+      "report": "<random-case-id>/report.jpg",
+      "drawing": "<random-case-id>/drawing.jpg"
+    }
+  },
+  "output_sha256": {
+    "<random-case-id>": {
+      "report": "<SHA-256 of the handed-off report JPG>",
+      "drawing": "<SHA-256 of the handed-off drawing JPG>"
+    }
+  }
+}
+```
+
+The ZIP additionally includes a `case_review` map with each case's actual
+`not_reviewed` or `human_reviewed` status. Overall status is `not_reviewed`,
+`partially_reviewed` or `human_reviewed`; downloading never creates a review.
+The analysis team must return the **same random case ID and exact input image
+hashes** with its JSON. Match by those, not row order, filenames or the printed
+original ID. The original-ID dictionary stays local for reassociation.
+
+### Connecting the first and last components
+
+```text
+Original report + drawing JPGs
+  -> preprocessing: paired pseudonymized JPGs + manifest
+  -> independent report and drawing extraction
+  -> matching/assessment: lesion properties + region assignments + evidence/issues
+  -> doctor review: inspect/correct findings
+  -> first-import lesion-only REDCap CSV
+```
+
+The middle stages must retain case IDs and exact handed-off image hashes.
+The combined result needs stable lesion IDs, the documented clinical fields,
+canonical region codes, supporting evidence and unresolved conflicts/uncertainty.
+Agree its actual JSON shape with the analysis team before implementing the final
+adapter: the review UI currently demonstrates a separate synthetic showcase
+contract, not a completed live connection to the extraction pipeline.
+
+The local preprocessing and review/export components work separately. A
+case-bound analysis handoff, doctor validation and an authorized REDCap test import
+are still required before calling the entire pipeline finished.
+
+### Local verification, 2026-10-17
+
+Czech plus English verification on Linux with Tesseract 5.5.0: the current
+`Other/data` batch produced **40 of 40 pairs from 80 scans**, with **0 filename
+mismatches**, no skipped cases and no reported pairing issues. Filename numbers
+were checked only after pairing, as a diagnostic. All 80 original SHA-256 hashes
+still matched the OCR run's recorded hashes, and every output hash matched the
+handoff manifest. The supplied current-main comparison was 38 of 40 pairs,
+0 mismatches, cases 5 and 8 skipped. That comparison was supplied by the user,
+not rerun here. This result tests pairing on this batch; it does not establish
+complete redaction or clinical accuracy.
+
+
+After OCR retry fixes, the already-uploaded 80-image artificial batch produced
+**40 confident pairs / 80 exported JPGs, no excluded inputs** (previously 37 pairs).
+The 37 existing case IDs and pair associations were retained; uploaded original
+bytes were unchanged. ZIP image hashes match the manifest, no original identifiers
+are in the manifest, and optional review is honestly marked `not_reviewed`.
+This is a result on this batch, not a production accuracy or anonymity guarantee.
+
 Keep `.preprocess-private/` local:
 
 - `dictionary.json`: original ID -> stable random case ID, source files, OCR
@@ -73,7 +204,7 @@ The script checks with Git that these directories are ignored and untracked
 before writing.
 
 Removing recognized IDs is not a guarantee that all identifying text is removed.
-TODO for a later version: broader sensitive-information checks and manual review.
+TODO for a later version: broader sensitive-information checks and manual mask editing.
 
 ## Compare originals and back-match results
 
@@ -104,13 +235,12 @@ Automatic merging of downstream results is not implemented.
 
 ## Synthetic checks
 
-The five checks cover identifier parsing, drawing classification, redaction
-pixels, stable pair exports, and links from the private comparison page. A prior
-local run on 80 artificial JPGs produced 37 pairs. All 37 pairings agreed with
-filename numbers, and six images were excluded. This checks pairing against a
-filename proxy only. It does not establish complete identifier removal or
-anonymity. Investigating the excluded images and testing small rotation/skew
-cases remain follow-up work.
+The 26 checks cover identifier parsing, drawing classification, focused OCR retries,
+conflict/low-confidence holds, mask coordinates and pixels, stable case IDs,
+private comparison links, upload validation, optional review/hold and ZIP hashes.
+The actual 80-image rerun is described above. Neither synthetic checks nor a
+successful pairing run establish complete identifier removal or anonymity.
+Additional batches and rotated/skewed cases remain follow-up work.
 
 ```sh
 uv run python -I -m unittest discover -s tests
