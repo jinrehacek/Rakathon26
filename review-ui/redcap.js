@@ -1,12 +1,15 @@
 /**
- * Offline, lesion-only first-import draft. Not an existing-record update or
+ * Offline first-import draft. Not an existing-record update or
  * reconciliation workflow. Column names and codes were checked against
  * Other/redcap/import_template_header.csv and section 6 of REDCAP.md.
  * Lesion-only import has NOT been verified in REDCap. No network calls are made.
  * Labels, evidence and issue resolutions stay in the review draft: this REDCap
- * instrument has no fields for them. Surgery and patient identity forms are not
- * generated. Doctor review does not change REDCap's Incomplete form status.
+ * instrument has no fields for them. Combined review adds a surgery row; the
+ * legacy showcase stays lesion-only. No patient identity form is generated.
+ * Doctor review does not change REDCap's Incomplete form status.
  */
+
+import { SURGERY_FIELDS, validateSurgery } from "./surgery.js";
 
 const presenceChoices = [
   ["1", "Yes"], ["2", "Uncertain"], ["3", "No"], ["4", "Not specified"],
@@ -112,6 +115,15 @@ export function validateReview(state, sectors) {
     errors.push("A review state is required.");
     return errors;
   }
+  if (state.needsRerun) errors.push("Matching changed. Download decisions, rerun central, and open the new assessment before CSV export.");
+  if (state.caseIssues !== undefined) {
+    if (!Array.isArray(state.caseIssues)) errors.push("An explicit case issue queue is required.");
+    else for (const issue of state.caseIssues) {
+      if (issue.severity !== "info" && (issue.resolved !== true || !nonempty(issue.resolution))) errors.push(`Case question needs review: ${issue.message}`);
+      if (issue.severity !== "info" && issue.disposition === "reviewed_unknown" && issue.regionCodes?.length) errors.push("Case sector uncertainty must be settled before export.");
+    }
+  }
+  if (state.exportScope === "surgery") errors.push(...validateSurgery(state.surgery));
   if (!nonempty(state.recordId)) {
     errors.push("Enter the REDCap record ID explicitly; the case ID is not a substitute.");
   } else if (/^\s*[=+\-@]/u.test(state.recordId) ||
@@ -191,6 +203,13 @@ export function validateReview(state, sectors) {
               Array.isArray(issue.regionCodes) && issue.regionCodes.length > 0) {
             errors.push(`${context}: uncertainty ${issueIndex + 1} concerns region checkboxes, which have no unknown code; the doctor must settle the region association or exclude the lesion.`);
           }
+          if (issue.disposition === "reviewed_unknown" && Array.isArray(issue.fieldNames)) {
+            for (const field of issue.fieldNames) {
+              const value = lesion.values?.[field];
+              const unknownCode = ["extracaps_ext", "perineural_inv_sur"].includes(field) && ["2", "4"].includes(value);
+              if (value !== undefined && value !== "" && !unknownCode) errors.push(`${context}: ${field} remains a selected finding despite a reviewed-unknown decision; clear it or explicitly select a permitted unknown code.`);
+            }
+          }
           if (!Array.isArray(issue.regionCodes) ||
               issue.regionCodes.some(code => !REGION_SET.has(code) || !seenSectors.has(code))) {
             errors.push(`${context}: uncertainty ${issueIndex + 1} has missing or unknown region codes.`);
@@ -240,7 +259,8 @@ function csvCell(value) {
 /**
  * First-import draft: one row per INCLUDED explicit instance, sorted numerically
  * without renumbering. Excluded lesions stay unchanged in the review state.
- * No surgery row, defaults, automatic numbering, or "Complete" status. Resolved
+ * A surgery row is added only for exportScope=surgery. No defaults, automatic
+ * numbering, or "Complete" status. Resolved
  * and reviewed-unknown issue dispositions do not supply clinical field values.
  * Existing-record update/clearing semantics are outside this MVP; the doctor
  * must check REDCap's import comparison table before saving.
@@ -248,10 +268,11 @@ function csvCell(value) {
 export function buildLesionCsv(state, sectors) {
   const errors = validateReview(state, sectors);
   if (errors.length) throw new Error(`Cannot export review:\n${errors.join("\n")}`);
+  const surgeryFields = state.exportScope === "surgery" ? [...SURGERY_FIELDS.map(f => f.name), "surgery_c61_complete"] : [];
   const header = [
     "record_id", "redcap_repeat_instrument", "redcap_repeat_instance", "all_sgm___1",
     ...REGION_CODES.map(code => `${REGION_PREFIX}${code}`),
-    ...LESION_FIELDS.map(field => field.name), `${INSTRUMENT}_complete`,
+    ...LESION_FIELDS.map(field => field.name), `${INSTRUMENT}_complete`, ...surgeryFields,
   ];
   const rows = state.lesions.filter(lesion => lesion.excluded !== true)
     .sort((a, b) => a.instance - b.instance).map(lesion => {
@@ -259,8 +280,12 @@ export function buildLesionCsv(state, sectors) {
       return [
         state.recordId, INSTRUMENT, lesion.instance, "0",
         ...REGION_CODES.map(code => selected.has(code) ? "1" : "0"),
-        ...LESION_FIELDS.map(field => lesion.values[field.name] ?? ""), "0",
+        ...LESION_FIELDS.map(field => lesion.values[field.name] ?? ""), "0", ...surgeryFields.map(() => ""),
       ];
     });
+  if (surgeryFields.length) {
+    const values = { record_id: state.recordId, ...state.surgery.values, surgery_c61_complete: "0" };
+    rows.unshift(header.map(name => values[name] ?? ""));
+  }
   return [header, ...rows].map(row => row.map(csvCell).join(",")).join("\r\n") + "\r\n";
 }

@@ -1,0 +1,11 @@
+import { readFile } from 'node:fs/promises';
+import { runMapLabelTests } from './map-labels.test.js';
+import { runExportTests } from './redcap.test.js';
+import { runReviewStateTests } from './review-state.test.js';
+import { runShowcaseAnalysisTests } from './showcase-analysis.test.js';
+import { runAnalysisTests } from './analysis.test.js';
+const read = async path => JSON.parse(await readFile(new URL(path, import.meta.url)));
+const sectors = await read('../assets/sectors.json');
+const reportText = await readFile(new URL('../fixtures/prefilled-report.txt', import.meta.url), 'utf8');
+const legacyText = await readFile(new URL('../../fixtures/synthetic_report.txt', import.meta.url), 'utf8');
+console.log(JSON.stringify({ map: runMapLabelTests(sectors), csv: runExportTests(sectors), review: runReviewStateTests(sectors), showcase: await runShowcaseAnalysisTests(await read('../fixtures/prefilled-analysis.json'), reportText, sectors), legacy: await runAnalysisTests(await read('../../fixtures/synthetic_response.json'), legacyText, sectors) }, null, 2));

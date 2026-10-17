@@ -141,6 +141,23 @@ export function validSavedReview(saved, prediction, sectors, context) {
   for (const key of ["schemaVersion", "caseId", "showcase", "sourceBinding", "sourceAnalysis", "reportText"]) {
     if (!equal(saved[key], prediction[key])) return false;
   }
+  if (prediction.sourceBinding === "pinned-combined") {
+    for (const key of ["sourceReport", "sourceDrawing", "exportScope"]) if (!equal(saved[key], prediction[key])) return false;
+    if (!validIssues(saved.caseIssues, prediction.caseIssues) || !object(saved.surgery) ||
+        !equal(saved.surgery.sourceObservations, prediction.surgery.sourceObservations) ||
+        typeof saved.surgery.reviewed !== "boolean" || !object(saved.surgery.values) ||
+        !object(saved.surgery.valueEvidence) || !Array.isArray(saved.centralDecisions) ||
+        (saved.needsRerun !== undefined && typeof saved.needsRerun !== "boolean")) return false;
+    for (const [field, value] of Object.entries(saved.surgery.values)) {
+      if (typeof value !== "string") return false;
+      if (value !== prediction.surgery.values[field] && !nonempty(saved.surgery.valueEvidence[field]?.reason)) return false;
+    }
+    for (const decision of saved.centralDecisions) {
+      if (!object(decision) || !["assign_mark", "reject_membership", "reject_group"].includes(decision.kind) ||
+          !nonempty(decision.id) || !object(decision.target) || !nonempty(decision.reason) ||
+          !nonempty(decision.reviewer) || !nonempty(decision.timestamp) || !saved.needsRerun) return false;
+    }
+  }
   if (typeof saved.recordId !== "string" || !Array.isArray(saved.reviewLog) ||
       !saved.reviewLog.every(entry => object(entry) && typeof entry.at === "string" &&
         typeof entry.action === "string" && typeof entry.actor === "string" && object(entry.details))) return false;
@@ -169,6 +186,16 @@ export function validSavedReview(saved, prediction, sectors, context) {
       if (lesion.doctorAdded === true || lesion.instance !== original.instance ||
           !equal(lesion.sourceObservations, original.sourceObservations) ||
           !validIssues(lesion.issues, original.issues)) return false;
+      if (prediction.sourceBinding === "pinned-combined") {
+        if (!equal(lesion.maybeRegions, original.maybeRegions)) return false;
+        for (const field of new Set([...Object.keys(lesion.values), ...Object.keys(original.values)])) {
+          if (lesion.values[field] !== original.values[field] && !lesion.valueEvidence?.[field]) return false;
+        }
+        for (const code of new Set([...lesion.regions, ...original.regions])) {
+          if (lesion.regions.includes(code) !== original.regions.includes(code) &&
+              !lesion.regionEvidence?.[code] && !lesion.pendingRegionEdits?.[code]) return false;
+        }
+      }
       if (lesion.creationEvidence !== undefined &&
           validateEvidence(lesion.creationEvidence, context, { reportOnly: true }).length) return false;
     } else if (lesion.doctorAdded !== true || !Array.isArray(lesion.sourceObservations) ||

@@ -22,7 +22,7 @@ python -m report_extractor run --input fixtures/synthetic_report.txt --mode fixt
 
 ### `review-ui/`
 
-Doctor review demo with REDCap lesion CSV export. See [review-ui/README.md](review-ui/README.md).
+JavaScript doctor review of central assessments, clickable sectors and flags, with surgery and lesion CSV export. See [review-ui/README.md](review-ui/README.md).
 
 ```sh
 uv run --no-project --python 3.12 python -I -m http.server 8766 --bind 127.0.0.1 --directory review-ui
