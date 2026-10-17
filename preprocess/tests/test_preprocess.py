@@ -14,13 +14,6 @@ spec = importlib.util.spec_from_file_location(
 mvp = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mvp)
 
-review_spec = importlib.util.spec_from_file_location(
-    "jpg_review", Path(__file__).resolve().parents[1] / "review.py"
-)
-review = importlib.util.module_from_spec(review_spec)
-review_spec.loader.exec_module(review)
-
-
 class MvpTests(unittest.TestCase):
     def test_ocr_uses_czech_and_english_language_data(self):
         result = type("Result", (), {"returncode": 0, "stdout": b"level\ttext\tconf\tleft\ttop\twidth\theight\tblock_num\tpar_num\tline_num\n"})()
@@ -118,37 +111,6 @@ class MvpTests(unittest.TestCase):
         self.assertFalse(result["confident"])
         self.assertEqual(result["id"], "Rakathon731")
 
-    def test_private_comparison_links_and_back_matching(self):
-        import json
-
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary).resolve()
-            batch, private = root / "batch", root / "private"
-            batch.mkdir()
-            private.mkdir()
-            sources, paths = [], {}
-            for role in ("report", "drawing"):
-                original, redacted = root / f"original-{role}.jpg", batch / f"{role}.jpg"
-                original.touch()
-                redacted.touch()
-                sources.append({"role": role, "source": str(original), "rotation": 0})
-                paths[role] = redacted.name
-            (batch / "manifest.json").write_text(json.dumps({"cases": {"case-123": paths}}))
-            (private / "dictionary.json").write_text(json.dumps({
-                "synthetic<&>": {"case_id": "case-123", "sources": sources},
-            }))
-            manifest_before = (batch / "manifest.json").read_bytes()
-            output, count = review.build_review(batch, private)
-            html = output.read_text()
-            self.assertEqual(count, 1)
-            self.assertEqual(output.parent, private)
-            self.assertIn("synthetic&lt;&amp;&gt;", html)
-            self.assertIn("case-123", html)
-            self.assertIn((root / "original-report.jpg").as_uri(), html)
-            self.assertIn((batch / "drawing.jpg").as_uri(), html)
-            self.assertNotIn("<script", html)
-            self.assertEqual((batch / "manifest.json").read_bytes(), manifest_before)
-
     def test_ids_preserve_digits_and_carry_coordinates(self):
         words = [
             {"text": "rAkAtHoN01", "confidence": 95, "box": (10, 20, 100, 40), "line": (1, 1, 1)},
@@ -195,10 +157,11 @@ class MvpTests(unittest.TestCase):
                         summary = mvp.run(batch)
                     manifest = json.loads((Path(summary["bundle"]) / "manifest.json").read_text())
                     self.assertEqual(summary["pairs"], 1)
-                    self.assertNotIn("Rakathon731", json.dumps(manifest))
-                    self.assertEqual(manifest["schema_version"], "preprocess-handoff-v1")
+                    self.assertEqual([case["original_id"] for case in manifest["cases"].values()], ["Rakathon731"])
+                    self.assertEqual(manifest["schema_version"], "preprocess-handoff-v2")
                     for case_id, paths in manifest["cases"].items():
-                        for role, relative in paths.items():
+                        for role in ("report", "drawing"):
+                            relative = paths[role]
                             self.assertEqual(manifest["output_sha256"][case_id][role],
                                              hashlib.sha256((Path(summary["bundle"]) / relative).read_bytes()).hexdigest())
                     manifests.append(manifest)

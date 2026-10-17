@@ -60,19 +60,14 @@ Status: 2026-10-17. Local hackathon demo, not clinically validated.
 
 ## Preprocessing: current baseline
 
-Local upload/review UI is implemented on `feature/preprocess`: upload JPGs,
-automatically hand off confident pairs, optionally inspect original/redacted
-images and mark reviewed or hold. Uncertain/unpaired inputs never auto-release.
-Manual mask editing and pair repair are deliberately outside this first slice.
-Backend checks and a synthetic upload -> real local OCR -> pair -> hold/approve
--> download smoke test pass. New patient-data accuracy claims have not been made.
+Preprocessing is a command-line script. It uses local Czech plus English OCR,
+pairs by printed Rakathon ID, assigns stable random case IDs, masks recognised
+IDs and writes fresh JPGs without copied metadata. No preprocessing web UI or
+HTML comparison-page generator remains.
 
-The earlier run produced **37 pairs from 80 JPG inputs**. After locally fixing
-OCR layout/scale retries, the same uploaded batch produced **40 pairs from 80
-images, with no excluded inputs**, preserving the 37 earlier case associations.
-The MVP uses local OCR, pairs by printed Rakathon ID, assigns stable
-random case IDs, masks recognized IDs and writes copies without copied metadata.
-This is not proof of complete de-identification or production readiness.
+The Linux run with Tesseract 5.5.0 paired all 40 cases from 80 scans, with no
+filename mismatches or skipped cases. The supplied main baseline paired 38 of 40,
+with cases 5 and 8 skipped. These are pairing results on this batch.
 
 - [x] Investigate the three unresolved drawing scans and the six excluded
   batch inputs. Local OCR missed a template label, misread small printed ID
@@ -82,9 +77,9 @@ This is not proof of complete de-identification or production readiness.
   genuine missing partners. Keep uncertain matches held.
 - [ ] Run a fresh nested JPG/JPEG batch and reimport it. Verify stable case IDs,
   correct report/drawing roles, no duplicate cases and unchanged original files.
-- [ ] Test adding reports and drawings from different folders before one upload.
-  A batch containing only reports or only drawings must remain unpaired, never
-  be guessed into pairs; separate processed uploads do not combine automatically.
+- [ ] For future background or cron use, define when a complete input batch is
+  ready. Repeated runs currently reprocess all JPGs and reuse the case IDs.
+  Prevent overlapping jobs with a single lock. Do not silently join encounters.
 - [ ] Test 90/180/270-degree rotation and separately test small skew. Inspect
   orientation and redaction coordinates, not just OCR success.
 - [ ] Inspect faint pink/yellow annotations, handwriting and dimensions after
@@ -99,6 +94,15 @@ This is not proof of complete de-identification or production readiness.
 
 ## ID round-trip: must not break
 
+- [ ] Consume `preprocess-handoff-v2` in the downstream handoff. Each pair now
+  carries `original_id` as well as its random case ID, report/drawing paths and
+  output hashes. Update exact-shape checks in `review-ui/prepare_showcase.py`;
+  keep extraction inputs pinned and do not treat the metadata as an image path.
+- [ ] Carry the manifest's `original_id` through central output and doctor review
+  to the local REDCap export step. Keep it distinct from `record_id`. Current
+  values such as `Rakathon05` identify the artificial source case and must never
+  be written into REDCap's `birth_id`. Future rodné číslo support needs an
+  explicit identifier type and its own detection, validation and mapping.
 - [ ] Preserve the private [ID dictionary](../preprocess/README.md#handoff)
   securely. It is plaintext and must not be shared with the analysis batch.
 - [ ] Keep the random `case_id` unchanged through extraction, matching and UI.

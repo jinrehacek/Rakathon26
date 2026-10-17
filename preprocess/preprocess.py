@@ -256,7 +256,7 @@ def run(folder: Path) -> dict:
             issues["unreadable_or_ocr_timeout"] += 1
         print(f"Read {index}/{len(inputs)} JPGs", file=sys.stderr, flush=True)
     manifest = {
-        "schema_version": "preprocess-handoff-v1",
+        "schema_version": "preprocess-handoff-v2",
         "review_status": "not_reviewed", "data_scope": "artificial", "cases": {}, "output_sha256": {},
     }
     try:
@@ -283,6 +283,7 @@ def run(folder: Path) -> dict:
                                         quality=95, subsampling=0, exif=b"", icc_profile=None)
             mapping[identifier] = {"case_id": case_id, "sources": members}
             manifest["cases"][case_id] = {
+                "original_id": identifier,
                 "report": f"{case_id}/report.jpg", "drawing": f"{case_id}/drawing.jpg",
             }
             manifest["output_sha256"][case_id] = {

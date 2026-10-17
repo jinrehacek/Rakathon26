@@ -12,16 +12,9 @@ Local scan preprocessing and pseudonymization of printed Rakathon IDs. See [prep
 cd preprocess && uv sync --python 3.12 && uv run python -I preprocess.py ../Other/data --artificial-data
 ```
 
-Or start the local upload/review UI from the repository root:
-
-```sh
-uv run --project preprocess --python 3.12 python -I preprocess/ui.py
-```
-
-Open http://127.0.0.1:8767/. Each output case folder contains `report.jpg` and
-`drawing.jpg`; the batch manifest carries random case IDs and image hashes.
-Confident pairs are ready without manual confirmation; review and hold are
-optional. See the [handoff contract](preprocess/README.md#downstream-contract).
+The script runs without prompts. Each output case has `report.jpg`, `drawing.jpg`
+and its `original_id` in a versioned manifest. Czech plus English OCR is local.
+See the [handoff contract](preprocess/README.md#handoff).
 
 ### `report_extractor/`
 
