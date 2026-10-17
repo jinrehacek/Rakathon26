@@ -246,6 +246,7 @@ text SHA-256: {_escape(text_layer.text_sha256)}</p>
 def render_text_layer_preview(text_layer: TextLayer) -> str:
     image_data = _embedded_image(text_layer)
     is_ocr = text_layer.extraction_method.value == "tesseract"
+    is_gemini = text_layer.extraction_method.value == "gemini"
     scan = ""
     if image_data:
         boxes = "".join(
@@ -255,10 +256,9 @@ def render_text_layer_preview(text_layer: TextLayer) -> str:
             for word in text_layer.words
         )
         scan = (
-            '<h2>Original source image with OCR word boxes</h2>'
+            '<h2>Original source image</h2>'
             f'<svg class="scan" viewBox="0 0 {text_layer.image_width} '
-            f'{text_layer.image_height}" role="img" aria-label="Source image '
-            'with Tesseract word boxes">'
+            f'{text_layer.image_height}" role="img" aria-label="Original source image">'
             f'<image href="{image_data}" width="{text_layer.image_width}" '
             f'height="{text_layer.image_height}" />{boxes}</svg>'
         )
@@ -277,7 +277,11 @@ def render_text_layer_preview(text_layer: TextLayer) -> str:
         for word in text_layer.words
     )
     word_rows = word_rows or '<tr><td colspan="4">No OCR words returned</td></tr>'
-    title = "Local OCR text-layer review" if is_ocr else "Plain-text layer review"
+    title = (
+        "Gemini transcription review" if is_gemini
+        else "Local OCR text-layer review" if is_ocr
+        else "Plain-text layer review"
+    )
     review_detail = (
         "<details><summary>OCR word boxes and confidence</summary>"
         "<p>Boxes use source-image pixels from the upper-left origin. Tesseract "
@@ -289,11 +293,15 @@ def render_text_layer_preview(text_layer: TextLayer) -> str:
         else "<p>Plain-text input has no scan coordinates and no claim of "
         "verified OCR accuracy.</p>"
     )
+    if is_gemini:
+        review_detail = "<p>Gemini transcribed this scan verbatim. Word boxes and word confidence are not available.</p>"
     warning = (
         "OCR ONLY — no semantic extraction or medical interpretation was run."
         if is_ocr
         else "TEXT INGEST ONLY — no semantic extraction or medical interpretation was run."
     )
+    if is_gemini:
+        warning = "TRANSCRIPTION ONLY. No semantic extraction was run."
     return f"""<!doctype html>
 <html lang="en">
 <meta charset="utf-8">

@@ -1,15 +1,14 @@
 Extract one Czech pathology report independently of every drawing. Return JSON with
-handwriting and extraction. Use only the immutable OCR text for values. The image
-provides context and handwriting regions. Never silently repair OCR. If the scan
-reading differs, add ocr_disagreement with OCR evidence, source-image region and
-image_reading, retaining the OCR-based value. Handwriting produces regions and
+handwriting and extraction. Use the supplied verbatim Gemini transcript for values
+and evidence quotations. The image provides source context and handwriting
+regions. Do not create OCR disagreement issues. Handwriting produces regions and
 explanations in handwriting, never field values. Coordinates are ORIGINAL source
 image pixels with origin upper left, x rightward, y downward.
 
 The supplied response schema defines the graph. Use model-local unique IDs across
 all collections. For evidence supply a quotation and optional image_region. Code
 computes offsets and text_layer_id. Each subject needs a short identification
-quotation at its FIRST appearance in the OCR, not an entire document quotation.
+quotation at its FIRST appearance in the transcript, not an entire document quotation.
 Different foci must have different first-appearance evidence. Include exactly one
 specimen, one tumour_focus per independently described focus and other_finding
 for useful non-tumour findings even without location. Children belong to specimen.
@@ -21,14 +20,14 @@ text does not mention it use status 'not reported', no value, no evidence_ids an
 a coverage-backed unavailable_reason. Include a complete checked coverage entry
 for that subject-property. Coverage checked=true means you SEARCHED the report,
 not that the finding is present. For an omitted property, use checked=true and
-source_complete=true after checking the complete OCR text. An unavailable field
+source_complete=true after checking the complete Gemini transcript. An unavailable field
 does not mean the source processing was incomplete. Example coverage:
 {"id":"cov1","subject_id":"local-specimen","property":"procedure",
- "checked":true,"source_complete":true,"rationale":"Complete OCR checked; procedure not stated."}
+ "checked":true,"source_complete":true,"rationale":"Complete transcript checked; procedure not stated."}
 Explicit NE is recorded presence absent. Distinguish
 unreadable, not assessed, not applicable with evidence and reasons. Unreadable
 content may have image-only evidence with a region and no quotation. Recorded
-values always need OCR quotations. Give a relevant image region with any proposed
+values always need transcript quotations. Give a relevant image region with any proposed
 quotation that might not anchor, so code can preserve an unreadable review issue.
 
 Only explicit and normalized bases. No inference, calculations, derived Grade

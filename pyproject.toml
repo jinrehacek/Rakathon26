@@ -7,7 +7,7 @@ name = "rakathon-report-extractor"
 version = "0.1.0"
 description = "Offline, evidence-backed text-report extraction prototype"
 requires-python = ">=3.11"
-dependencies = ["pydantic>=2.14,<3"]
+dependencies = ["pydantic>=2.14,<3", "pillow>=12.3.0"]
 
 [project.optional-dependencies]
 drawing = [

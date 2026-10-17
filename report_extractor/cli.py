@@ -25,7 +25,7 @@ def _unique_output_dir(output_root: str | Path, prefix: str) -> Path:
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="report-extractor",
-        description="Czech OCR and report-3 extraction for central review.",
+        description="Gemini transcription and report-3 extraction for central review.",
     )
     commands = parser.add_subparsers(dest="command", required=True)
     ingest = commands.add_parser(

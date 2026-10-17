@@ -1,6 +1,6 @@
 # Text extraction spec
 
-Agreed on 2026-10-17. Status: implementation spec. This document records the agreed behavior; writing it does not implement or verify the extractor.
+Updated on 2026-10-17 to replace local report OCR with Gemini transcription. Status: implementation spec. This document records the agreed behavior; writing it does not implement or verify the extractor.
 
 ## Goal and scope
 
@@ -25,12 +25,12 @@ The implementation recheck must cover:
 - Carry every report issue into the doctor queue as a question, with its source context. Handwriting and OCR disagreement flags change no values.
 - Keep specimen EPE/PNI observations at specimen scope. A specimen NE proposes No for each lesion as an inference requiring confirmation. A specimen ANO with several lesions becomes an attribution question. Retain contradictory focus-specific observations.
 - Distinguish structurally complete output with open review issues from incomplete output. The current validator counts any issue as incomplete; that rule must change for `report-3`.
-- Support image-only evidence for unreadable content and handwriting without fabricated text offsets. Recorded values still require anchored OCR quotations.
+- Support image-only evidence for unreadable content and handwriting without fabricated text offsets. Recorded values still require anchored transcript quotations.
 - Verify central loading of actual extractor output as well as hand-written references. Keep decision targets tied to pinned extraction inputs.
 
 ## Inputs and output files
 
-The input is the preprocessed case's `report.jpg`; `<case>` is the ID from its preprocess `manifest.json`. The report scan and OCR text are the only document inputs to this extractor.
+The input is the preprocessed case's `report.jpg`; `<case>` is the ID from its preprocess `manifest.json`. The report scan is the only source document. Gemini creates its text layer.
 
 ```text
 Other/output/report/<case>/<timestamp>/report.json
@@ -48,9 +48,9 @@ The three existing hand-written report files belong under `central-eval` as `rep
 
 ## Extraction sequence
 
-1. Run local Tesseract with Czech language data, `ces`, on `report.jpg`. Keep the resulting text layer immutable, with word boxes, source dimensions and hashes. Retain the existing Unicode code-point offset convention.
-2. Make one Gemini call with the OCR text and the same report scan. The call returns both extraction content and detected handwriting regions, conceptually `{handwriting: [...], extraction: {...}}`.
-3. Convert Gemini's quotations to evidence positions in code using the minimal matcher below. Map text evidence to OCR word boxes where available.
+1. Ask Gemini to act as OCR on `report.jpg` and return only verbatim text. Preserve wording, diacritics, punctuation, numbers and line breaks without correction or interpretation. Mark unreadable spans rather than guessing. Keep the resulting text layer immutable, with source dimensions, model and transcription-prompt version, and hashes. Do not invent word boxes or confidence. Retain the existing Unicode code-point offset convention. Empty, blocked or truncated responses fail without local OCR fallback.
+2. Make a second Gemini call with the verbatim transcript and the same report scan. The call returns both extraction content and detected handwriting regions, conceptually `{handwriting: [...], extraction: {...}}`.
+3. Convert Gemini's quotations to evidence positions in code using the minimal matcher below. Anchor quotations directly in the Gemini transcript.
 4. Assign subject IDs in source order and rewrite model-local references to those IDs.
 5. Validate values, scope, evidence, references and required-property coverage. If validation fails, send the errors back for one retry, using the same immutable inputs. This is one additional call, not a separate handwriting pass.
 6. Validate the retry. Quarantine items that remain invalid, set `complete: false`, and retain validation errors. Central refuses that case. A transport or parse failure must not produce a complete extraction.
@@ -60,7 +60,7 @@ The three existing hand-written report files belong under `central-eval` as `rep
 
 Use model ID `gemini-3.8-flash`, temperature `0`, thinking level `low`, and the key from `GEMINI_API_KEY`. These are the agreed extractor settings. The central brain may use a higher thinking level independently.
 
-Gemini uses the OCR text for extracted field values. The image provides context for checking OCR and detecting handwriting. If its reading of the scan differs from the OCR, raise `ocr_disagreement` with both readings and the image region. Do not silently correct the immutable text layer or replace its extracted value.
+Gemini uses its verbatim transcript for extracted values and quotations. The image provides source context and handwriting regions. There is no separate local OCR result and new extractions do not create `ocr_disagreement` issues. Historical bundles and their issues remain supported. Extraction retries reuse the same transcript; they do not transcribe again.
 
 Handwriting detection returns regions for review. It creates a `handwriting_present` issue and no values, even if the writing appears legible. The later drawing pipeline remains separate.
 
@@ -82,12 +82,12 @@ If two report statements disagree about the same subject and property, retain bo
 
 ## Quotation matching for the first version
 
-Code finds quotations in the immutable OCR text. Gemini does not supply authoritative offsets.
+Code finds quotations in the immutable Gemini transcript. Gemini does not supply authoritative offsets.
 
 1. Search for the exact quotation.
 2. If exact matching fails, retry while ignoring whitespace, including line breaks. Keep a character-index map back to the original text.
 3. If the successful search finds several spans, take the first in source order and raise `ambiguous_evidence` listing the candidates. This is a temporary compromise requiring review.
-4. Store the matched OCR substring as `quotation` and its original code-point positions as `[start_offset, end_offset)`. The invariant is `text[start_offset:end_offset] == quotation`, including after whitespace matching.
+4. Store the matched transcript substring as `quotation` and its original code-point positions as `[start_offset, end_offset)`. The invariant is `text[start_offset:end_offset] == quotation`, including after whitespace matching.
 5. If neither search finds a span, do not record the proposed value. Set the affected property to `unreadable` with no value and raise `unanchored_evidence`. Retain Gemini's proposed value and quotation inside that review issue, apart from recorded observations. Point the unavailable observation and issue to the relevant source-image region. Do not fabricate a quotation or offsets.
 
 An unanchored quotation handled this way is a review issue and does not by itself make the case incomplete. Missing required source context or an invalid issue payload remains a validation error. There is no separate quote-repair call in this first version.
@@ -104,9 +104,10 @@ Verify the behaviors that can lose or misattribute information:
 - Separate specimen and focus scope, optional specimen Gleason, exact versus broad zones, and non-tumour findings with no location.
 - Preservation of conflicting observations, central refusal of unresolved validation failures, and complete output with open review questions.
 - Exact and whitespace quotation matching with correct original offsets, repeated quotations flagged for review, and unanchored proposals kept outside recorded values.
-- Handwriting and OCR disagreement issues without value changes.
+- Handwriting issues without value changes and historical OCR disagreement compatibility.
+- Verbatim Gemini transcription, source/text hashes and dimensions, with no local OCR invocation or fallback.
 - IDs determined by source order when Gemini returns subjects in another order.
-- One combined extraction/handwriting call, at most one validation retry, and no raw-response files.
+- One transcription call followed by one combined extraction/handwriting call, at most one validation retry, and no raw-response files.
 - Timestamped output, a case-level link to the complete run, and central loading of that exact `report-3` bundle. Old contract versions must fail.
 - Central's specimen EPE/PNI proposals, conflicts and doctor-confirmation requirements.
 

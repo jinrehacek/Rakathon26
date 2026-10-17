@@ -112,7 +112,7 @@ def run_extraction(
         created_at=datetime.now(UTC),
         extractor_version=f"report-extractor/{__version__}",
         schema_version=SCHEMA_VERSION,
-        prompt_version=PROMPT_VERSION,
+        prompt_version=getattr(extractor, "prompt_version", PROMPT_VERSION),
         output_contract_version=OUTPUT_CONTRACT_VERSION,
         mode=extractor.mode,
         model_id=getattr(extractor, "model_id", None),

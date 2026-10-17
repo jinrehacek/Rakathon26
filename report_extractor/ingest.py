@@ -1,18 +1,13 @@
 from __future__ import annotations
 
-import csv
 import hashlib
 import io
-import os
-import shutil
-import subprocess
 from pathlib import Path
 
 from .models import (
     ExtractionMethod,
     InputKind,
     TextLayer,
-    WordBox,
 )
 
 
@@ -29,96 +24,7 @@ def _layer_id(source_hash: str, text_hash: str, method: str, tool_version: str) 
     return "tl-" + hashlib.sha256(identity).hexdigest()[:24]
 
 
-def _tesseract_version(executable: str) -> str:
-    result = subprocess.run(
-        [executable, "--version"],
-        check=True,
-        capture_output=True,
-        text=True,
-        timeout=10,
-    )
-    return result.stdout.splitlines()[0].removeprefix("tesseract ").strip()
-
-
-def _ocr_image(path: Path) -> tuple[str, tuple[WordBox, ...], int, int, str]:
-    executable = shutil.which("tesseract")
-    if executable is None:
-        raise IngestionError(
-            "Tesseract is not installed. Install Tesseract and Czech language data."
-        )
-    try:
-        environment = os.environ.copy()
-        environment.setdefault("OMP_THREAD_LIMIT", "1")
-        version = _tesseract_version(executable)
-        languages = subprocess.run(
-            [executable, "--list-langs"],
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=10,
-            env=environment,
-        ).stdout.splitlines()
-        if "ces" not in languages:
-            raise IngestionError(
-                "Tesseract language data 'ces' is unavailable; no OCR was run."
-            )
-        result = subprocess.run(
-            [executable, str(path), "stdout", "-l", "ces", "tsv"],
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=180,
-            env=environment,
-        )
-    except subprocess.TimeoutExpired as exc:
-        raise IngestionError("Tesseract timed out; no text layer was saved.") from exc
-    except subprocess.CalledProcessError as exc:
-        detail = exc.stderr.strip() or "Tesseract returned a non-zero status."
-        raise IngestionError(f"OCR failed: {detail}") from exc
-
-    reader = csv.DictReader(io.StringIO(result.stdout), delimiter="\t")
-    text_parts: list[str] = []
-    words: list[WordBox] = []
-    previous_line: tuple[str, str, str, str] | None = None
-    image_width = image_height = 0
-    text_length = 0
-    for row in reader:
-        if row["level"] == "1":
-            image_width = int(row["width"])
-            image_height = int(row["height"])
-        if row["level"] != "5" or not row["text"].strip():
-            continue
-        line = (row["page_num"], row["block_num"], row["par_num"], row["line_num"])
-        separator = "\n" if previous_line is not None and line != previous_line else (
-            " " if previous_line is not None else ""
-        )
-        text_parts.append(separator)
-        text_length += len(separator)
-        start_offset = text_length
-        word_text = row["text"]
-        text_parts.append(word_text)
-        text_length += len(word_text)
-        confidence = float(row["conf"])
-        words.append(
-            WordBox(
-                text=word_text,
-                start_offset=start_offset,
-                end_offset=start_offset + len(word_text),
-                x=int(row["left"]),
-                y=int(row["top"]),
-                width=int(row["width"]),
-                height=int(row["height"]),
-                confidence=confidence if confidence >= 0 else None,
-            )
-        )
-        previous_line = line
-
-    if not image_width or not image_height:
-        raise IngestionError("Tesseract did not return page dimensions.")
-    return "".join(text_parts), tuple(words), image_width, image_height, version
-
-
-def build_text_layer(source: str | Path) -> TextLayer:
+def build_text_layer(source: str | Path, *, transport=None, key=None) -> TextLayer:
     path = Path(source).expanduser()
     if not path.is_file():
         raise IngestionError(f"Input file does not exist: {path}")
@@ -152,23 +58,33 @@ def build_text_layer(source: str | Path) -> TextLayer:
     if suffix in {".jpg", ".jpeg"} and not raw.startswith(b"\xff\xd8"):
         raise IngestionError("The JPEG input does not have a JPEG signature.")
 
-    text, words, width, height, version = _ocr_image(path)
+    from PIL import Image, UnidentifiedImageError
+    from .gemini import MODEL_ID, TRANSCRIPTION_VERSION, transcribe_image
+
+    try:
+        with Image.open(io.BytesIO(raw)) as image:
+            width, height = image.size
+            image.verify()
+    except (OSError, ValueError, UnidentifiedImageError) as exc:
+        raise IngestionError("Could not read report image dimensions.") from exc
+    text = transcribe_image(raw, mime="image/png" if suffix == ".png" else "image/jpeg",
+                            transport=transport, key=key)
+    version = f"{MODEL_ID}/{TRANSCRIPTION_VERSION}"
     source_hash = _sha256(raw)
     text_hash = _sha256(text.encode("utf-8"))
     return TextLayer(
         id=_layer_id(
-            source_hash, text_hash, ExtractionMethod.TESSERACT.value, version
+            source_hash, text_hash, ExtractionMethod.GEMINI.value, version
         ),
         source_path=str(path.resolve()),
         source_sha256=source_hash,
         text_sha256=text_hash,
         input_kind=InputKind.IMAGE,
-        extraction_method=ExtractionMethod.TESSERACT,
-        tool="Tesseract",
+        extraction_method=ExtractionMethod.GEMINI,
+        tool="Gemini",
         tool_version=version,
         language="ces",
         text=text,
-        words=words,
         image_width=width,
         image_height=height,
     )

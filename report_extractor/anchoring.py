@@ -1,4 +1,4 @@
-"""Turn model quotations into immutable OCR anchors and assign source-ordered IDs."""
+"""Turn model quotations into immutable transcript anchors and assign source-ordered IDs."""
 from __future__ import annotations
 
 from copy import deepcopy
@@ -79,12 +79,12 @@ def anchor_response(response: dict, layer: TextLayer) -> dict:
             # Failed quotation evidence stays image-only, never a selected value.
             for ref in unavailable:
                 issues.append({'id': new_id('unanchored'), 'kind': 'unanchored_evidence',
-                    'summary': 'Proposed value could not be anchored in OCR text.',
+                    'summary': 'Proposed value could not be anchored in transcript.',
                     'subject_id': obs['subject_id'], 'property': obs['property'],
                     'proposed_value': proposed, 'proposed_quotation': failed[ref],
                     'failure_reason': 'No exact or whitespace-insensitive quotation match.',
                     'image_region': anchor_index[ref].get('image_region'), 'evidence_ids': [ref]})
-            obs.update(status='unreadable', unavailable_reason='Proposed quotation is not in the immutable OCR text.')
+            obs.update(status='unreadable', unavailable_reason='Proposed quotation is not in the immutable transcript.')
         for ref in refs:
             if ref in ambiguous:
                 issues.append({'id': new_id('ambiguous'), 'kind': 'ambiguous_evidence',

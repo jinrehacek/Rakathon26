@@ -27,7 +27,8 @@ class InputKind(StrEnum):
 
 class ExtractionMethod(StrEnum):
     PLAIN_TEXT = "plain_text"
-    TESSERACT = "tesseract"
+    TESSERACT = "tesseract"  # Read historical bundles; never used for new ingestion.
+    GEMINI = "gemini"
 
 
 class WordBox(StrictModel):
@@ -65,8 +66,8 @@ class TextLayer(StrictModel):
             if self.words or self.image_width or self.image_height:
                 raise ValueError("plain-text input cannot claim scan coordinates")
         else:
-            if self.extraction_method != ExtractionMethod.TESSERACT:
-                raise ValueError("image input must use the tesseract method")
+            if self.extraction_method not in {ExtractionMethod.TESSERACT, ExtractionMethod.GEMINI}:
+                raise ValueError("image input must use an image transcription method")
             if self.image_width is None or self.image_height is None:
                 raise ValueError("image dimensions are required for OCR")
             if any(
