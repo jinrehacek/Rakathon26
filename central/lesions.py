@@ -8,7 +8,7 @@ from .candidates import crosswalk_rows
 from .confidence import confidence, sector_confidence, text_confidence
 from .issues import (candidate_signals, filter_signals, issue, number_issues,
                      size_note_issues)
-from .matching import location, observations, observed, subjects, sides_compatible
+from .matching import location, observations, observed, subjects, sides_compatible, zones_overlap
 from .rules import ZONE_TABLE
 
 
@@ -31,7 +31,26 @@ def property_assessments(report: dict, subject_id: str) -> list[dict]:
         if obs.get("unavailable_reason"):
             assessment["unavailable_reason"] = obs["unavailable_reason"]
         result.append(assessment)
-    return result
+    # Present one unresolved assessment with every original alternative.
+    grouped = {}
+    for assessment in result:
+        grouped.setdefault(assessment["property"], []).append(assessment)
+    combined = []
+    for prop, alternatives in grouped.items():
+        if len(alternatives) == 1:
+            combined.extend(alternatives)
+            continue
+        base = deepcopy(alternatives[0])
+        base.pop("value", None)
+        base.update(disposition="unresolved", review_status="needs_review",
+                    candidates=[{"value": a.get("value"), "status": a["status"], "basis": a["basis"],
+                                 "supports": a["supports"], "evidence_ids": a["evidence_ids"]} for a in alternatives],
+                    supports=[ref for a in alternatives for ref in a["supports"]],
+                    source_assessments=alternatives,
+                    confidence=confidence("conflict", "Conflicting report statements require a doctor decision."),
+                    rationale="All conflicting source observations remain unresolved.")
+        combined.append(base)
+    return combined
 
 
 def text_sectors(report: dict, focus_id: str, rows: list[dict]) -> list[str]:
@@ -40,7 +59,7 @@ def text_sectors(report: dict, focus_id: str, rows: list[dict]) -> list[str]:
         return []
     return sorted(row["redcap_code"] for row in rows
                   if row["patient_side"] in loc["laterality"] and row["level"] in loc["level"]
-                  and ZONE_TABLE.get(row["zone"], (None, None))[0] in loc["zone"])
+                  and zones_overlap(loc["zone"], {row["zone"]}, set()))
 
 
 def build_interpretation(report: dict, drawing: dict, candidates: list[dict], matching: dict,
@@ -97,7 +116,8 @@ def build_interpretation(report: dict, drawing: dict, candidates: list[dict], ma
         zones = {zone for candidate in chosen for zone in candidate["zones"]}
         side_conflict = bool(loc["laterality"] and sides and not sides_compatible(loc["laterality"], sides))
         ap_conflict = bool(loc["anteroposterior"] and aps and not loc["anteroposterior"] & aps)
-        zone_conflict = bool(loc["zone"] and zones and not loc["zone"] & zones)
+        exact_zones = {zone for candidate in chosen for zone in candidate.get("exact_zones", [])}
+        zone_conflict = bool(loc["zone"] and zones and not zones_overlap(loc["zone"], exact_zones, zones))
         lesion["side_agrees"] = bool(loc["laterality"] and sides and not side_conflict)
         lesion["level_agrees"] = bool(loc["level"] and levels and not loc["level"] - levels)
         for prop, conflict, kind in (("laterality", side_conflict, "side_conflict"),
@@ -110,7 +130,7 @@ def build_interpretation(report: dict, drawing: dict, candidates: list[dict], ma
             issues.append(issue(kind, "question", [lesion["id"], "report:" + obs["id"]] + lesion["marks"],
                                 f"Report and drawing {prop} disagree; review both source values."))
             for assessment in lesion["properties"]:
-                if assessment["property"] == prop:
+                if assessment["property"] == prop and "value" in assessment:
                     value = assessment.pop("value")
                     drawing_value = {"type": "location", {"laterality": "laterality", "level": "levels", "zone": "zones", "anteroposterior": "anteroposterior"}[prop]:
                                      sorted(sides if prop == "laterality" else levels if prop == "level" else zones if prop == "zone" else aps)}
@@ -189,14 +209,56 @@ def build_interpretation(report: dict, drawing: dict, candidates: list[dict], ma
                             "The best and runner-up assignments differ by less than one point.",
                             alternatives=[matching["best_assignment"], matching.get("runner_up_assignment")],
                             preselected=matching["best_assignment"]))
+    _specimen_proposals(report, specimen_id, lesions, issues)
     signals, details = filter_signals(drawing, lesions, candidates, rows)
     issues.extend(signals)
     issues.extend(size_note_issues(report, drawing, lesions, details))
     for extraction_issue in report["extraction"].get("issues", []):
         issues.append(issue(extraction_issue["kind"], "question",
-                            ["report:" + extraction_issue["id"]] + ["report:" + sid for sid in extraction_issue.get("alternative_subject_ids", [])],
+                            ["report:" + extraction_issue["id"]] + ["report:" + ref for ref in
+                                extraction_issue.get("alternative_subject_ids", []) + extraction_issue.get("evidence_ids", []) + extraction_issue.get("observation_ids", [])],
                             extraction_issue["summary"], source_issue=deepcopy(extraction_issue)))
     return {"lesions": lesions,
             "specimen": {"kind": "specimen", "source_subject": "report:" + specimen_id,
                          "properties": property_assessments(report, specimen_id)},
             "other_findings": other_findings, "issues": number_issues(issues), "details": details}
+
+
+def _specimen_proposals(report: dict, specimen_id: str, lesions: list[dict], issues: list[dict]) -> None:
+    for prop in ("extraprostatic_extension", "perineural_invasion"):
+        source = observed(report, specimen_id, prop)
+        if not source or source["value"]["value"] not in {"absent", "present"}:
+            continue
+        ref = "report:" + source["id"]
+        value = source["value"]["value"]
+        for lesion in lesions:
+            target = next((p for p in lesion["properties"] if p["property"] == prop), None)
+            focus_values = [o for o in observations(report, lesion.get("focus"))
+                            if o["property"] == prop and o["status"] == "recorded"]
+            contradictory = [o for o in focus_values if o["value"]["value"] in {"absent", "present"} and o["value"]["value"] != value]
+            propose = value == "absent" or len(lesions) == 1
+            if contradictory and target:
+                candidates = target.get("candidates", [{"value": deepcopy(target.get("value")), "basis": target["basis"], "supports": target["supports"]}])
+                candidates.append({"value": deepcopy(source["value"]), "basis": "inferred", "supports": [ref]})
+                target.pop("value", None)
+                target.update(disposition="unresolved", review_status="needs_review", candidates=candidates,
+                              confidence=confidence("conflict", "Specimen and focus statements contradict each other."))
+                issues.append(issue("internal_conflict", "question", [lesion["id"], ref] + ["report:" + o["id"] for o in contradictory],
+                                    "Specimen and focus findings disagree; retain both scopes for review."))
+            elif propose and not focus_values:
+                proposal = {"property": prop, "status": "recorded", "basis": "inferred", "value": deepcopy(source["value"]),
+                            "disposition": "provisional", "review_status": "needs_review", "supports": [ref], "opposes": [],
+                            "derived_from": [ref], "tags": ["specimen inference"], "requires_confirmation": True,
+                            "rationale": "Proposed from the specimen statement; doctor confirmation is required before export.",
+                            "confidence": confidence("low", "Attribution from specimen to lesion is inferred.")}
+                if target:
+                    proposal["source_assessment"] = deepcopy(target)
+                    target.clear()
+                    target.update(proposal)
+                else:
+                    lesion["properties"].append(proposal)
+                issues.append(issue("specimen_inference", "question", [lesion["id"], ref],
+                                    "Confirm the lesion finding inferred from the specimen statement.", property=prop))
+        if value == "present" and len(lesions) > 1:
+            issues.append(issue("specimen_attribution", "question", [ref] + [l["id"] for l in lesions],
+                                "Which lesion has the specimen-wide positive finding?", property=prop))

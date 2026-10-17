@@ -5,7 +5,7 @@ promotes an item into another scope, and never treats missing or unassessed
 information as a negative finding. Every result is a ``check_failed`` issue with
 the rule's source and edition attached.
 
-The caller may pass either the report-2 bundle or its ``extraction`` object.
+The caller may pass either the report-3 bundle or its ``extraction`` object.
 Reviewer overrides are read from the supplied computation copy, including
 ``review_decision`` entries; this module does not filter them out.
 """
@@ -71,8 +71,8 @@ def _observations_for(extraction: dict, subject_id: str | None, property_name: s
 
 
 def _recorded(extraction: dict, subject_id: str | None, property_name: str) -> dict | None:
-    return next((item for item in _observations_for(extraction, subject_id, property_name)
-                 if item.get("status") == "recorded"), None)
+    from .matching import observed
+    return observed({"extraction": {"observations": _observations(extraction)}}, subject_id, property_name)
 
 
 def _presence(observation: dict | None) -> str | None:

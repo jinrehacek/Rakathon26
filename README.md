@@ -14,7 +14,7 @@ cd preprocess && uv sync --python 3.12 && uv run python -I preprocess.py ../Othe
 
 ### `report_extractor/`
 
-Offline text-report extraction prototype. See [report_extractor/README.md](report_extractor/README.md).
+Czech OCR and Gemini report extraction with evidence-backed `report-3` output. See [report_extractor/README.md](report_extractor/README.md).
 
 ```sh
 python -m report_extractor run --input fixtures/synthetic_report.txt --mode fixture --fixture-file fixtures/synthetic_response.json --output-dir Other/output/fixture-demo

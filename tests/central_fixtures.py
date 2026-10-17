@@ -10,7 +10,9 @@ FOCUS_PROPERTIES = ("reported_label", "dominant", "laterality", "level", "zone",
                     "extraprostatic_extension", "perineural_invasion", "histology_type")
 SPECIMEN_PROPERTIES = ("classification_pt", "classification_pn", "classification_pm", "classification_r",
                        "classification_l", "classification_v", "grade_group", "reported_lesion_count",
-                       "multifocality", "histology", "icd_o", "seminal_vesicle_invasion")
+                       "multifocality", "histology", "icd_o", "seminal_vesicle_invasion",
+                       "extraprostatic_extension", "perineural_invasion", "procedure",
+                       "lymph_nodes_examined", "lymph_nodes_positive", "conclusion_text")
 
 
 def write_case(root: Path, case="synthetic-case") -> tuple[Path, Path]:
@@ -57,7 +59,7 @@ def write_case(root: Path, case="synthetic-case") -> tuple[Path, Path]:
                        "tool": "synthetic-fixture", "tool_version": "1", "language": "cs", "page": 1, "text": text, "words": []},
         "extraction": {"id": "extract-1", "document_id": "doc-1", "source_text_layer_id": "text-1",
                        "created_at": "2026-10-17T12:00:00Z", "extractor_version": "synthetic/1",
-                       "schema_version": "1.0.0", "prompt_version": "synthetic-1", "output_contract_version": "report-2",
+                       "schema_version": "1.0.0", "prompt_version": "synthetic-1", "output_contract_version": "report-3",
                        "mode": "manual", "complete": True, "evidence": [evidence], "subjects": subjects,
                        "coverage": coverage, "observations": observations, "issues": []},
         "quarantine": [], "validation_errors": [],

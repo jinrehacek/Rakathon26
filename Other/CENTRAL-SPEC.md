@@ -148,7 +148,7 @@ For every subject, every required property listed for its kind below gets at lea
 | `textual_location` | location | The full location phrase unchanged. Kept for the doctor. |
 | `dimensions` | dimensions | As today: ordered measurements, units, `approximate`. No invented axes. |
 | `gleason_patterns` | gleason patterns | Primary, secondary and optional tertiary pattern, each with an optional percentage. |
-| `gleason_score` | gleason score | As today. |
+| `gleason_score` | gleason score | Retain the stated total. Primary and secondary patterns may be omitted when only the total is stated; never infer them. |
 | `grade_group` | coded | Only if stated for this focus. |
 | `extraprostatic_extension` | presence | |
 | `perineural_invasion` | presence | |

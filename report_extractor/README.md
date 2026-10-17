@@ -1,70 +1,70 @@
-# Report extractor
+# Report extraction
 
-## Offline text-report extraction prototype
+The extractor reads one Czech report independently of its drawing and writes the
+`report-3` bundle defined in [CENTRAL-SPEC.md](../Other/CENTRAL-SPEC.md). See
+[TEXT-SPEC.md](../Other/TEXT-SPEC.md) for extraction rules.
 
-Run all commands in this guide from the repository root. Paths such as
-`fixtures/`, `prompts/`, and `Other/output/` are relative to that directory.
-
-This prototype accepts one UTF-8 plain-text report or one JPEG/PNG report image. Image inputs are processed locally with Tesseract and Czech `ces` data. PDFs, multi-page documents, drawings, matching, export, and interactive review are out of scope.
-
-The prototype writes an immutable, versioned page-1 text layer, then accepts only an explicitly selected, hash-bound synthetic fixture response. There is no semantic regex extractor, live model adapter, or network call. Fixture output is clearly labelled and does not validate model interpretation accuracy. `prompts/report-extraction-v1.txt` and `python -m report_extractor schema` define the future provider-neutral prompt and JSON response contract.
-
-Plain text is decoded as UTF-8 without whitespace or character normalization. Tesseract TSV words are joined with one ASCII space within each OCR line and one LF between lines; evidence offsets are half-open Python Unicode code-point offsets into that exact immutable text. OCR boxes use source-image pixels, origin at upper-left, x increasing rightward and y downward.
-
-Install Python dependencies and the local OCR engine:
+Run from the repository root. Image ingestion requires local Tesseract with Czech
+`ces` language data. Check it with `tesseract --list-langs`.
 
 ```sh
-python -m venv .venv
-. .venv/bin/activate
-python -m pip install -e .
+uv sync --extra drawing
 sudo apt-get install tesseract-ocr tesseract-ocr-ces
-tesseract --list-langs
+uv run --env-file .env python -m report_extractor case <case-id> \
+  --manifest Other/preprocessed/<batch>/manifest.json
 ```
 
-The Tesseract language list must include `ces`. All generated report text, source-linked results, and HTML belong in `Other/output/`, which is already ignored by Git. Outputs are placed in unique run folders and do not overwrite prior attempts.
+The case command selects `<case-id>/report.jpg` from the manifest. It sends that
+scan and its immutable local OCR text to Gemini in one combined extraction and
+handwriting request. Settings are `gemini-3.8-flash`, temperature `0`, thinking
+level `low`, with `GEMINI_API_KEY` from the environment. Validation can trigger
+one additional call with the same inputs and error feedback.
 
-Reproduce the synthetic end-to-end fixture demo and tests:
+Each attempt writes to `Other/output/report/<case>/<timestamp>/`. The run contains
+`report.json`, `text-layer.json`, and a local `review.html`. `result.json` links to
+`report.json` for the original diagnostic workflow. All generated data stays in
+Git-ignored `Other/output/`. Raw Gemini responses and prompt copies are not saved.
+
+Only complete, validated runs replace the relative case-level `report.json` link.
+An incomplete run exits with code 2 and leaves the previous result available.
+Open review questions do not make an otherwise valid extraction incomplete.
+Central resolves the case link once and pins the selected extraction and hash.
+Before replacing a manual probe input, the writer preserves its bytes under
+`Other/output/central-eval/<case>/report-reference-original.json` and creates
+`report-reference.json` if absent. An old reference needs a separate reviewed
+`report-3` migration before central can load it. Existing references are preserved.
+
+Code anchors model quotations in the OCR text using exact matching followed by
+whitespace-insensitive matching. Offsets refer to original Unicode code points.
+Repeated matches use the first span and raise a question. An unanchored proposal
+becomes `unreadable`; its proposed value and quotation stay in the issue. Image-only
+evidence needs a source region and cannot support a recorded value.
+
+Handwriting and OCR disagreements produce questions without changing field values.
+Conflicting statements keep all observations. Foci and other findings get IDs in
+source order. Specimen statements retain their scope.
+
+For a synthetic fixture run with no network:
 
 ```sh
-python -m report_extractor run \
-  --input fixtures/synthetic_report.txt \
-  --mode fixture \
+uv run python -m report_extractor run \
+  --input fixtures/synthetic_report.txt --mode fixture \
   --fixture-file fixtures/synthetic_response.json \
   --output-dir Other/output/fixture-demo
-python -m unittest discover -s tests -v
+uv run pytest tests -q
 ```
 
-The fixture is accepted only when its SHA-256 matches the exact immutable text layer. It produces schema-aligned `result.json`, `text-layer.json`, and a self-contained local `review.html`. The page separates valid observations, coverage, unresolved issues, and quarantined input; all report/model text is escaped. Every result starts unreviewed.
+Fixtures declare their prompt/contract versions and exact text hash. Tests inject
+hand-written combined model responses through the same Gemini adapter. They cover
+retry bounds, evidence anchoring, source ordering, issue retention, publication,
+and central loading. They do not measure model accuracy.
 
-Print the versioned response JSON Schema:
+For OCR alone, use `ingest --input <report.jpg> --output-dir Other/output/ocr`.
+For an already selected scan, `run --input <report.jpg> --mode gemini
+--output-dir Other/output/report/<case>` uses the same writer. The legacy
+`external` mode remains disabled. `schema` prints the anchored output graph schema;
+the Gemini adapter's `response_schema()` describes its pre-anchoring response.
 
-```sh
-python -m report_extractor schema
-```
-
-Run local OCR on the three report-only probe inputs (do not use their paired `drawing.jpg` files):
-
-```sh
-python -m report_extractor ingest \
-  --input Other/preprocessed/batch-22d4f91f-fa1e-4cad-99f5-73b8245808b4/0359bf00-2223-4fd3-8bda-7aa3cc695382/report.jpg \
-  --output-dir Other/output/ocr-probe
-python -m report_extractor ingest \
-  --input Other/preprocessed/batch-22d4f91f-fa1e-4cad-99f5-73b8245808b4/1105712e-8d9e-42bc-b161-4446601c1978/report.jpg \
-  --output-dir Other/output/ocr-probe
-python -m report_extractor ingest \
-  --input Other/preprocessed/batch-22d4f91f-fa1e-4cad-99f5-73b8245808b4/16609ad4-7a01-40b4-a065-ae9e5b0edc4d/report.jpg \
-  --output-dir Other/output/ocr-probe
-```
-
-Each OCR run writes the immutable text layer, exact text, and a local HTML preview with the source scan, word boxes, and available Tesseract confidence. Confidence describes word reading only, not medical certainty. See `Other/research/offline_text_extraction_verification.md` for the recorded probe tools, outputs, visual inspection, and limitations.
-
-The future external mode is intentionally disabled and exits with an error before any network call:
-
-```sh
-python -m report_extractor run \
-  --input fixtures/synthetic_report.txt \
-  --mode external \
-  --output-dir Other/output/disabled
-```
-
-Deterministic validation checks types, statuses, references, evidence quotations/offsets, declared coverage, and dependency/containment cycles. It cannot prove semantic correctness or clinical validity. No real-model extraction, model-accuracy measurement, or clinical validation is claimed. Any future provider integration and real-model accuracy evaluation remain unverified and require separate work.
+Production provider and hospital approval requirements remain in
+[TASK.md](../TASK.md). The current hackathon scans are authorised for Gemini;
+that agreement does not select a production service.

@@ -23,14 +23,17 @@ def observations(report: dict, subject_id: str) -> list[dict]:
 
 
 def observed(report: dict, subject_id: str, prop: str) -> dict | None:
-    return next((obs for obs in observations(report, subject_id)
-                 if obs["property"] == prop and obs["status"] == "recorded"), None)
+    matches = [obs for obs in observations(report, subject_id) if obs["property"] == prop]
+    # A reviewed computation copy can contain repeated, identical overrides.
+    if len(matches) > 1 and not all(o.get("review_decision") and o.get("value") == matches[0].get("value") for o in matches):
+        return None
+    return next((obs for obs in matches if obs["status"] == "recorded"), None)
 
 
 def property_observation(report: dict, subject_id: str, prop: str) -> dict | None:
     """Keep the raw unavailable observation when no recorded value exists."""
     matches = [obs for obs in observations(report, subject_id) if obs["property"] == prop]
-    return next((obs for obs in matches if obs["status"] == "recorded"), matches[0] if matches else None)
+    return observed(report, subject_id, prop) if len(matches) > 1 else (matches[0] if matches else None)
 
 
 def location(report: dict, subject_id: str) -> dict[str, set[str]]:
@@ -43,7 +46,18 @@ def location(report: dict, subject_id: str) -> dict[str, set[str]]:
         if prop == "laterality" and "bilateral" in values:
             values = {"right", "left"}
         result[prop] = values
+    if not result["anteroposterior"] and result["zone"]:
+        from .rules import ZONE_TABLE
+        result["anteroposterior"] = {ZONE_TABLE[z][1] for z in result["zone"] if z in ZONE_TABLE and ZONE_TABLE[z][1]}
     return result
+
+
+def zones_overlap(text: set[str], exact: set[str], broad: set[str]) -> bool:
+    from .rules import ZONE_TABLE
+    if exact:
+        return any(z == candidate or z == ZONE_TABLE.get(candidate, (None, None))[0]
+                   for z in text for candidate in exact)
+    return bool(text & broad)
 
 
 def dimensions_mm(obs: dict | None) -> list[float]:
@@ -119,7 +133,7 @@ def pair_score(report: dict, focus: dict, candidate: dict, size_bonus: bool = Fa
     for prop, field in LOCATION_PROPERTIES:
         obs = property_observation(report, focus["id"], prop)
         report_input = _report_input(obs)
-        text, drawing = loc[prop], set(candidate.get(field, []))
+        text, drawing = loc[prop], set(candidate.get("exact_zones", candidate.get(field, [])) if prop == "zone" else candidate.get(field, []))
         label = PROPERTY_LABELS[prop]
         if obs is not None and obs["status"] != "recorded" and not text:
             score, outcome, review_status = 0.0, "no counterpart", "unreviewed"
@@ -167,7 +181,7 @@ def pair_score(report: dict, focus: dict, candidate: dict, size_bonus: bool = Fa
                 explanation = (f"Report side {_values(text)} conflicts with drawing side {_values(drawing)} for {score:+.1f}; "
                                "both sides remain available for review.")
         else:
-            agrees = bool(text & drawing)
+            agrees = zones_overlap(text, set(candidate.get("exact_zones", [])), drawing) if prop == "zone" else bool(text & drawing)
             score = LOCATION_AGREE if agrees else LOCATION_CONFLICT
             outcome = "agreement" if agrees else "conflict"
             review_status = "unreviewed" if agrees else "needs_review"
@@ -179,7 +193,7 @@ def pair_score(report: dict, focus: dict, candidate: dict, size_bonus: bool = Fa
         total += score
         comparisons.append({
             "property": prop, "candidate": candidate["id"], "score": score,
-            "inputs": ([report_input["ref"]] if report_input else []) + candidate["marks"],
+            "inputs": ["report:" + o["id"] for o in observations(report, focus["id"]) if o["property"] == prop] + candidate["marks"],
             "report_ref": report_input["ref"] if report_input else None,
             "report_status": obs["status"] if obs else None,
             "input_observations": [report_input] if report_input else [],

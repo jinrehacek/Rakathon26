@@ -51,7 +51,7 @@ def build_candidates(drawing: dict, crosswalk_path: Path | None = None) -> list[
         members = [member for member in members if member not in excluded]
         if not members:
             continue
-        inside, maybe, sides, levels, zones, aps = (set() for _ in range(6))
+        inside, maybe, sides, levels, zones, aps, exact_zones = (set() for _ in range(7))
         contributing_views = set()
         supports = []
         for member in members:
@@ -78,6 +78,7 @@ def build_candidates(drawing: dict, crosswalk_path: Path | None = None) -> list[
                         zone, ap = ZONE_TABLE.get(sector["zone"], (None, None))
                         if zone:
                             zones.add(zone)
+                            exact_zones.add(sector["zone"])
                         if ap:
                             aps.add(ap)
             supports.append(member)
@@ -90,6 +91,7 @@ def build_candidates(drawing: dict, crosswalk_path: Path | None = None) -> list[
                 views[view]["orientation"].get("basis") == "explicit" for view in contributing_views
             ) else "inferred",
             "levels": sorted(levels - {"unknown", "unspecified"}), "zones": sorted(zones),
+            "exact_zones": sorted(exact_zones),
             "anteroposterior": sorted(aps), "sector_count": len(inside),
             "supports": supports,
         }

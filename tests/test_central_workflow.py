@@ -386,6 +386,7 @@ class PipelineTests(unittest.TestCase):
         drawing = json.loads(self.drawing_file.read_text())
         candidates = build_candidates(drawing)
         candidates[0]["zones"] = ["tz"]
+        candidates[0]["exact_zones"] = ["tzp"]
         candidates[0]["sectors_in"] = ["tzp_mid_rs"]
         matching = match(report, candidates, fixed_assignment={"f1": ["c1"], "f2": ["c2"]})
         result = build_interpretation(report, drawing, candidates, matching)
