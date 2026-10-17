@@ -28,6 +28,14 @@ Doctor review demo with REDCap lesion CSV export. See [review-ui/README.md](revi
 uv run --no-project --python 3.12 python -I -m http.server 8766 --bind 127.0.0.1 --directory review-ui
 ```
 
+### `central/`
+
+Matches complete report and drawing extractions, retains conflicts for review, and applies doctor decisions in new runs. See [central/README.md](central/README.md).
+
+```sh
+.venv/bin/python -m central <preprocess-case-id>
+```
+
 ## Project notes
 
 Commands assume the repository root unless they change directory. The authoritative schema is [data_schema/STRUCTURE.md](data_schema/STRUCTURE.md). See [Other/redcap/REDCAP.md](Other/redcap/REDCAP.md) for REDCap fields and [Other/IMAGE_PIPELINE.md](Other/IMAGE_PIPELINE.md) for the image pipeline proposal.

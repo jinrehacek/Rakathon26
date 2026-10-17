@@ -11,6 +11,7 @@ dependencies = ["pydantic>=2.14,<3"]
 
 [project.scripts]
 report-extractor = "report_extractor.cli:main"
+central = "central.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["report_extractor*"]
+include = ["report_extractor*", "central*"]
