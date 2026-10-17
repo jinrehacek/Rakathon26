@@ -200,3 +200,11 @@ def test_model_cannot_claim_doctor_review(tmp_path):
     run=run_extraction(layer,GeminiExtractor(key='key',transport=lambda b,k:response(raw)),path.parent)
     bundle=load_report(run/'report.json')
     assert {o['review_status'] for o in bundle['extraction']['observations']}=={'unreviewed'}
+
+
+def test_provider_schema_uses_enum_discriminators():
+    from report_extractor.gemini import response_schema
+    schema=response_schema()
+    assert schema['$defs']['CodedValue']['properties']['type']['enum']==['coded']
+    encoded=json.dumps(schema)
+    assert '"const"' not in encoded and '"oneOf"' not in encoded

@@ -30,12 +30,28 @@ def response_schema():
     # Review belongs to a doctor; the model does not author review metadata.
     definitions['Observation']['properties'].pop('review_status', None)
     definitions['ModelExtraction'] = extraction
-    return {'type': 'object', 'required': ['handwriting', 'extraction'], 'additionalProperties': False,
+    schema = {'type': 'object', 'required': ['handwriting', 'extraction'], 'additionalProperties': False,
             'properties': {
                 'handwriting': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False,
                     'required': ['image_region', 'explanation'], 'properties': {
                         'image_region': {'$ref': '#/$defs/ImageRegion'}, 'explanation': {'type': 'string'}}}},
                 'extraction': {'$ref': '#/$defs/ModelExtraction'}}, '$defs': definitions}
+
+    def provider_schema(value):
+        if isinstance(value, list):
+            return [provider_schema(item) for item in value]
+        if not isinstance(value, dict):
+            return value
+        # Gemini's supported schema subset uses enums and anyOf. Keep the full
+        # Pydantic constraints for local validation rather than weakening them.
+        result = {('anyOf' if key == 'oneOf' else key): provider_schema(item)
+                  for key, item in value.items()
+                  if key not in {'const', 'default', 'discriminator', 'minItems', 'maxItems'}}
+        if 'const' in value:
+            result['enum'] = [value['const']]
+        return result
+
+    return provider_schema(schema)
 
 
 def _post(body, key):
