@@ -135,8 +135,22 @@ def test_replay_needs_no_client(tmp_path):
     client = FakeClient({})
     groups, *_ = grouping.run_grouping(case, marks, orientations, client=client, key="k", replay=True)
     assert client.calls == [] and groups[0].id == "g1"
-    with pytest.raises(RuntimeError, match="different marks"):
+    with pytest.raises(RuntimeError, match="rerun without --replay"):
         grouping.run_grouping(case, marks[:-1], orientations, client=client, key="k", replay=True)
+    with pytest.raises(RuntimeError, match="model"):
+        grouping.run_grouping(case, marks, orientations, client=client, key="k", model="other", replay=True)
+
+
+def test_replay_rejects_a_moved_mark_with_the_same_marks_json(tmp_path):
+    # Marks JSON has no geometry, so only the annotated image shows the move.
+    case = case_dir(tmp_path)
+    marks = all_marks()
+    orientations = orient_views(marks)[0]
+    grouping.run_grouping(case, marks, orientations, client=FakeClient(RESPONSE), key="k")
+    moved = [m.model_copy(update={"box_ref": [x + 8 for x in m.box_ref]}) if m.id == "base.m1" else m for m in marks]
+    assert grouping.marks_json(moved, orientations) == grouping.marks_json(marks, orientations)
+    with pytest.raises(RuntimeError, match="different images"):
+        grouping.run_grouping(case, moved, orientations, client=FakeClient({}), key="k", replay=True)
 
 
 def test_annotated_sheet_draws_and_does_not_touch_input():

@@ -67,7 +67,8 @@ Orientation is an observation on the view subject. STRUCTURE.md lines 50, 149 an
 | --- | --- | --- |
 | Side letter in or next to the view | explicit | P or R = right, L = left. The letter's side is the sign of x at its centre. Gemini reads the letter; code decides the side. |
 | Letter between SV and Base | explicit | Applies to the whole axial block: SV, base, mid, apex. |
-| Unlettered axial view, another axial view lettered | inferred | Takes that view's orientation. |
+| Unlettered axial view, another axial view lettered | inferred | Takes the nearest lettered view's orientation. |
+| Unlettered axial view, lettered axial views disagree | none | Orientation `unknown`; the view joins the `letter_conflict` signal. |
 | Unlettered axial view, no axial letters | inferred | Default: patient right on viewer-left. |
 | Unlettered coronal view | inferred, certainty low | Default: patient right on viewer-left. |
 | Letter in the sagittal view | none | Signal `letter_in_sagittal`. P may mean posterior. |
@@ -120,6 +121,7 @@ No self-reported certainty. It said "high" on everything in the probes.
 - Match marks across runs by polygon IoU ≥ 0.5.
 - In 3 of 3 runs: normal mark. In 2 or 1 of 3: kept, signal `run_instability` with the count.
 - Keep the polygon that overlaps the other runs best.
+- Keep the text most runs read, ignoring case and spaces. Runs that read it differently get a `run_instability` signal on the text.
 - Keep each run's sector list. A sector named in only some runs gets a `run_instability` signal.
 - Merged marks get stable IDs: `<view>.m<n>`, for example `base.m2`.
 
@@ -265,7 +267,7 @@ One module per stage in `drawing_pipeline/`: `preprocess`, `gemini` + `merge` + 
 uv sync --extra drawing
 OPENBLAS_CORETYPE=Haswell uv run --env-file .env python -m drawing_pipeline run \
     --manifest Other/preprocessed/<batch>/manifest.json --case <case-id> --sheets
-OPENBLAS_CORETYPE=Haswell uv run python -m drawing_pipeline run ... --replay   # rebuild from saved responses, no API call
+OPENBLAS_CORETYPE=Haswell uv run python -m drawing_pipeline run ... --replay   # rebuild from saved responses, no API call; stops if the model, prompt or images changed
 OPENBLAS_CORETYPE=Haswell uv run python -m drawing_pipeline grade --round 1 --case <id> ...
 ```
 

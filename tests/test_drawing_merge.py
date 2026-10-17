@@ -110,3 +110,20 @@ def test_thin_arcs_and_letters_match_despite_a_few_px_of_jitter():
     assert [m.runs_found for m in marks] == [3, 3]
     assert not [s for s in signals if s.kind == "run_instability"]
     assert next(m for m in marks if m.kind == "side letter").basis == "explicit"
+
+
+def test_minority_letter_reading_loses_to_the_majority():
+    # Identical boxes tie on geometry, so run 1 wins it; its P must not outvote L, L.
+    runs = [[letter(k, "m1", 50, 40, text=t)] for k, t in enumerate(["P", "L", "L"], 1)]
+    marks, signals = merge_runs("base", runs)
+    assert marks[0].text == "L"
+    assert [(s.kind, s.observations, s.suggestion) for s in signals] == [
+        ("run_instability", ["base.m1.text"], "info only")]
+    assert "'P', 'L', 'L'" in signals[0].reason
+
+
+def test_text_differing_only_in_case_and_spacing_agrees():
+    runs = [[RunMark(run=k, local_id="m1", kind="text", box_crop=[100, 100, 200, 130], text=t)]
+            for k, t in enumerate(["cca 25mm", "CCA 25 mm", "cca 25mm"], 1)]
+    marks, signals = merge_runs("base", runs)
+    assert marks[0].text == "cca 25mm" and signals == []

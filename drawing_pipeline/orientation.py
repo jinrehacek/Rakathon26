@@ -100,12 +100,15 @@ def _orientation_of(letter: Mark, view: str) -> str | None:
     return RIGHT_AT_NEGATIVE if on_negative == right else RIGHT_AT_POSITIVE
 
 
-def orient_views(marks: list[Mark]) -> tuple[dict[str, Observation], dict[str, list[str]], list[Signal]]:
+def orient_views(marks: list[Mark], views=None) -> tuple[dict[str, Observation], dict[str, list[str]], list[Signal]]:
+    """Orientation of each requested view (all by default). A view only inherits from another requested view."""
+    views = [name for name in reference.VIEWS if views is None or name in views]
     letters = view_letters(marks)
     ids = {name: [m.id for m in found] for name, found in letters.items()}
     signals: list[Signal] = []
     result: dict[str, Observation] = {}
-    for name, view in reference.VIEWS.items():
+    for name in views:
+        view = reference.VIEWS[name]
         if view.axis_x is None or name == "urethra":
             result[name] = Observation(status=AvailabilityStatus.NOT_APPLICABLE, evidence=ids[name],
                                        certainty=Certainty(explanation="no left/right in this view"))
@@ -122,12 +125,20 @@ def orient_views(marks: list[Mark]) -> tuple[dict[str, Observation], dict[str, l
         elif values:
             result[name] = Observation(status=AvailabilityStatus.RECORDED, value=values.pop(), basis=Basis.EXPLICIT,
                                        evidence=ids[name])
-    for name in AXIAL_ORDER:
+    axial = [name for name in AXIAL_ORDER if name in views]
+    lettered = [n for n in axial if n in result and result[n].status == AvailabilityStatus.RECORDED]
+    conflicted = [n for n in axial if n in result and result[n].status == AvailabilityStatus.UNREADABLE]
+    # Lettered axial views that disagree with each other are a sheet-level conflict. Spec is silent; raise it.
+    block_conflict = len({result[n].value for n in lettered}) > 1
+    inherited = []
+    for name in axial:
         if name in result:
             continue
-        lettered = [n for n in AXIAL_ORDER if n in result and result[n].status == AvailabilityStatus.RECORDED]
-        conflicted = [n for n in AXIAL_ORDER if n in result and result[n].status == AvailabilityStatus.UNREADABLE]
-        if lettered:
+        inherited.append(name)
+        if block_conflict:
+            result[name] = Observation(status=AvailabilityStatus.UNREADABLE, derived_from=[f"{n}.orientation" for n in lettered],
+                                       certainty=Certainty(explanation="no letter in this view; lettered axial views disagree"))
+        elif lettered:
             source = min(lettered, key=lambda n: abs(AXIAL_ORDER.index(n) - AXIAL_ORDER.index(name)))
             result[name] = Observation(
                 status=AvailabilityStatus.RECORDED, value=result[source].value, basis=Basis.INFERRED,
@@ -138,15 +149,14 @@ def orient_views(marks: list[Mark]) -> tuple[dict[str, Observation], dict[str, l
                                        certainty=Certainty(explanation="no letter in this view; letters elsewhere in the axial block conflict"))
         else:
             result[name] = _default(name, "no axial letters on the sheet; default patient right on viewer left")
-    # Lettered axial views that disagree with each other are a sheet-level conflict. Spec is silent; raise it.
-    values = {n: result[n].value for n in AXIAL_ORDER if result[n].basis == Basis.EXPLICIT}
-    if len(set(values.values())) > 1:
-        signals.append(signal("letter_conflict", [f"{n}.orientation" for n in values],
-                              "lettered axial views give opposite orientations: " + ", ".join(f"{n} {v}" for n, v in values.items())))
-    if "coronal" not in result:
+    if block_conflict:
+        signals.append(signal("letter_conflict", [f"{n}.orientation" for n in lettered + inherited],
+                              "lettered axial views give opposite orientations: "
+                              + ", ".join(f"{n} {result[n].value}" for n in lettered)))
+    if "coronal" in views and "coronal" not in result:
         result["coronal"] = _default("coronal", "no letter in the coronal view; default patient right on viewer left",
                                      interpretation=CertaintyLevel.LOW)
-    return {name: result[name] for name in reference.VIEWS}, ids, signals
+    return {name: result[name] for name in views}, ids, signals
 
 
 def _default(view: str, why: str, interpretation: CertaintyLevel = CertaintyLevel.UNASSESSED) -> Observation:

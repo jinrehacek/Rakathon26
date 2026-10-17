@@ -128,3 +128,26 @@ def test_apply_sides_unknown_not_applicable_midline():
     assert apex.patient_side.value == "unknown" and apex.sectors_named[0].patient_side is None
     assert sagittal.patient_side.value == "not applicable" and sagittal.redcap == []
     assert urethra.patient_side.value == "midline" and urethra.redcap == ["urethra"]
+
+
+def test_lettered_axial_conflict_makes_inherited_views_unreadable():
+    # base says patient right at x>0, apex says x<0; mid has no letter and must not take either.
+    marks = [letter("base.m1", "L", 900, 500), letter("apex.m1", "P", 900, 1400)]
+    orientations, _, signals = orient_views(marks)
+    assert orientations["mid"].status == AvailabilityStatus.UNREADABLE
+    assert orientations["mid"].derived_from == ["base.orientation", "apex.orientation"]
+    conflict = next(s for s in signals if s.kind == "letter_conflict")
+    assert {"mid.orientation", "seminal_vesicles.orientation"} <= set(conflict.observations)
+    mark = Mark(id="mid.m1", view="mid", kind="closed outline", runs_found=3, sectors_named=sectors(("pzpl", "mid", "left")))
+    apply_sides([mark], orientations)
+    assert mark.patient_side.value == "unknown" and mark.redcap == []
+
+
+def test_requested_views_only_inherit_from_each_other():
+    # The letter sits in the SV/base gap, so it is listed under every axial view, base included.
+    marks = [letter("seminal_vesicles.m1", "L", 900, 365)]
+    orientations, _, signals = orient_views(marks, ["mid"])
+    assert list(orientations) == ["mid"] and signals == []
+    assert orientations["mid"].basis.value == "explicit"
+    orientations, _, _ = orient_views([letter("base.m1", "L", 900, 500)], ["mid", "apex"])
+    assert set(orientations) == {"mid", "apex"} and orientations["mid"].derived_from == []

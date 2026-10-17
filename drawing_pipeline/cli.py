@@ -36,6 +36,12 @@ def git_sha() -> str | None:
         return None
 
 
+def require_readings(readings: dict[str, list], out: Path) -> None:
+    """A view with no usable reading would look like a view with no marks, so the case fails instead."""
+    if empty := [view for view, runs in readings.items() if all(run is None for run in runs)]:
+        raise RuntimeError(f"No usable Gemini reading for {', '.join(empty)}; see {out / 'gemini'}")
+
+
 def run_case(case_id: str, drawing: Path, args) -> Path:
     out = args.output / case_id
     views = args.views
@@ -56,6 +62,7 @@ def run_case(case_id: str, drawing: Path, args) -> Path:
             masks[view] = mask
             overlays[view] = cv_regions.overlay(cleaned, found[view])
         readings = readings.result()
+        require_readings(readings, out)
 
         marks, signals, runs_completed = [], [], {}
         for view in views:
@@ -67,7 +74,7 @@ def run_case(case_id: str, drawing: Path, args) -> Path:
             signals += compare_signals
             marks += merged
 
-        orientations, letters, orientation_signals = orientation.orient_views(marks)
+        orientations, letters, orientation_signals = orientation.orient_views(marks, views)
         signals += orientation_signals
         orientation.apply_sides(marks, orientations)
         signals += notes.link_notes(marks)
@@ -91,6 +98,8 @@ def run_case(case_id: str, drawing: Path, args) -> Path:
     result = output.build_output(extraction, views_out, marks, cv_out, groups, standalone, not_lesion, signals)
     path = out / "drawing.json"
     output.write(result, path)
+    for view in views:  # grade reuses these, so its CV panel matches drawing.json even after a code change
+        grading.save_overlay(out, view, overlays[view])
     if args.sheets:
         grading.make_sheets(out, result, overlays)
     print(f"{case_id}: {len(marks)} marks, {len(groups)} groups, {len(result.signals)} signals -> {path.relative_to(ROOT)}")
@@ -118,11 +127,7 @@ def cmd_grade(args) -> int:
     for case_id in args.case:
         out = args.output / case_id
         result = output.load(out / "drawing.json")
-        overlays = {}
-        for view in [v.id for v in result.views]:
-            _, cleaned, mask = preprocess.load_view(out, view)
-            overlays[view] = cv_regions.overlay(cleaned, cv_regions.analyse_view(mask, view))
-        print(grading.make_sheets(out, result, overlays))
+        print(grading.make_sheets(out, result, grading.load_overlays(out, [v.id for v in result.views])))
         outputs.append(result)
     print(grading.write_template(outputs, args.round))
     return 0
@@ -150,6 +155,7 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     if not args.output.resolve().is_relative_to((ROOT / "Other/output").resolve()):
         parser.error("Outputs must stay under the git-ignored Other/output folder")
+    args.output = args.output.resolve()
     return cmd_run(args) if args.command == "run" else cmd_grade(args)
 
 

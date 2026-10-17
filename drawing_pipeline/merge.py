@@ -30,6 +30,22 @@ def _suggestion(found: int, total: int) -> str:
     return "info only" if found * 2 > total else "would flag"
 
 
+def _text_key(text: str) -> str:
+    return "".join(text.split()).casefold()  # "15mm" and "15 mm" are one reading
+
+
+def _majority_text(kept: RunMark, members: list[RunMark]) -> str | None:
+    """The reading most runs agree on, ignoring case and spaces. Ties go to the geometry winner."""
+    texts = [m.text for m in members if m.text]
+    if not texts:
+        return None
+    counts = Counter(map(_text_key, texts))
+    best = max(counts.values())
+    if kept.text and counts[_text_key(kept.text)] == best:
+        return kept.text
+    return next(t for t in texts if counts[_text_key(t)] == best)
+
+
 def _top_left(mark: RunMark) -> tuple[float, float]:
     points = np.asarray(mark.polygon_crop if mark.polygon_crop else np.reshape(mark.box_crop, (2, 2)))
     return float(points[:, 1].min()), float(points[:, 0].min())
@@ -69,8 +85,7 @@ def merge_runs(view: str, runs: list[list[RunMark] | None]) -> tuple[list[Mark],
         best = max(kinds.values())
         kind = kept.kind if kinds[kept.kind] == best else next(marks[k].kind for k in members
                                                                if kinds[marks[k].kind] == best)
-        texts = Counter(marks[k].text for k in members if marks[k].text)
-        merged.append((kept, members, kind, kept.text or (texts.most_common(1)[0][0] if texts else None)))
+        merged.append((kept, members, kind, _majority_text(kept, [marks[k] for k in members])))
 
     merged.sort(key=lambda item: _top_left(item[0]))
     result, signals = [], []
@@ -95,6 +110,12 @@ def merge_runs(view: str, runs: list[list[RunMark] | None]) -> tuple[list[Mark],
         if len(found) < total:
             signals.append(signal("run_instability", [mark_id], f"found in {len(found)} of {total} runs",
                                   _suggestion(len(found), total)))
+        readings = [by_run[r].text for r in found if by_run[r].text]
+        if len({_text_key(t) for t in readings}) > 1:
+            agree = sum(_text_key(t) == _text_key(text) for t in readings)
+            signals.append(signal("run_instability", [f"{mark_id}.text"],
+                                  f"text read as {', '.join(repr(t) for t in readings)}; kept {text!r}",
+                                  _suggestion(agree, len(found))))
         for sector in named:
             count = sum(sector in sectors for sectors in named_by_run)
             if count < len(found):

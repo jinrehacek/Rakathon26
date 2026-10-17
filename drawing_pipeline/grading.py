@@ -25,6 +25,18 @@ def _read(path: Path) -> np.ndarray:
     return image
 
 
+def save_overlay(case_out: Path, view: str, overlay: np.ndarray) -> None:
+    folder = Path(case_out) / "cv"
+    folder.mkdir(parents=True, exist_ok=True)
+    cv.imwrite(str(folder / f"{view}_overlay.png"), overlay)
+
+
+def load_overlays(case_out: Path, views: list[str]) -> dict[str, np.ndarray]:
+    """CV overlays saved by the run. A missing one falls back to boxes from drawing.json, never a recompute."""
+    found = {view: cv.imread(str(Path(case_out) / "cv" / f"{view}_overlay.png"), cv.IMREAD_COLOR) for view in views}
+    return {view: image for view, image in found.items() if image is not None}
+
+
 def _title(image: np.ndarray, text: str) -> np.ndarray:
     bar = np.full((24, image.shape[1], 3), 255, np.uint8)
     cv.putText(bar, text, (4, 17), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv.LINE_AA)

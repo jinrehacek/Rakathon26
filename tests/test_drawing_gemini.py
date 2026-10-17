@@ -114,6 +114,11 @@ def test_read_view_live_and_replay(tmp_path):
     replayed = gemini.read_view(tmp_path, "base", client=None, key=None, replay=True)
     assert [r is None for r in replayed] == [r is None for r in runs]
     assert [r for r in replayed if r] == [r for r in runs if r]
+    with pytest.raises(RuntimeError, match="model"):
+        gemini.read_view(tmp_path, "base", client=None, key=None, model="other", replay=True)
+    cv.imwrite(str(tmp_path / "preprocess/views/base/cleaned.png"), np.full((h, w, 3), 230, np.uint8))
+    with pytest.raises(RuntimeError, match="different images"):
+        gemini.read_view(tmp_path, "base", client=None, key=None, replay=True)
 
 
 def test_prompt_hash_is_stable():

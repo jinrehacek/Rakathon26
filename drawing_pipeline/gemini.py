@@ -112,20 +112,28 @@ def _png(image: np.ndarray) -> bytes:
     return data.tobytes()
 
 
-def _prepare(case_out: Path, view: str) -> dict:
-    """Request body for one view; saves the map image that is sent."""
+def _prompt(view: str) -> str:
+    v = VIEWS[view]
+    return PROMPT.read_text() + f"\n\nView: {view} ({v.view_type}, level {v.level}).\n"
+
+
+def _images(case_out: Path, view: str) -> tuple[bytes, bytes]:
+    """Image 1 and image 2 as sent: the original crop and the cleaned crop over the map."""
     views_dir = Path(case_out) / "preprocess/views" / view
     original = (views_dir / "original.png").read_bytes()
     cleaned = cv.imread(str(views_dir / "cleaned.png"), cv.IMREAD_COLOR)
     if cleaned is None:
         raise FileNotFoundError(views_dir / "cleaned.png")
-    map_png = _png(map_image(cleaned, view))
+    return original, _png(map_image(cleaned, view))
+
+
+def _prepare(case_out: Path, view: str) -> dict:
+    """Request body for one view; saves the map image that is sent."""
+    original, map_png = _images(case_out, view)
     out = Path(case_out) / "gemini" / view
     out.mkdir(parents=True, exist_ok=True)
     (out / "map.png").write_bytes(map_png)
-    v = VIEWS[view]
-    prompt = PROMPT.read_text() + f"\n\nView: {view} ({v.view_type}, level {v.level}).\n"
-    parts = [{"text": prompt}, {"text": "Image 1: original colour crop"}, llm.image_part(original),
+    parts = [{"text": _prompt(view)}, {"text": "Image 1: original colour crop"}, llm.image_part(original),
              {"text": "Image 2: cleaned crop over the coloured sector map"}, llm.image_part(map_png)]
     return llm.request_body(parts, reading_schema(view), temperature=1.0)
 
@@ -146,7 +154,11 @@ def to_run_marks(reading, view: str, run: int) -> list[RunMark]:
 def _run(case_out: Path, view: str, run: int, body: dict | None, *, client, key, model, replay) -> list[RunMark] | None:
     out = Path(case_out) / "gemini" / view / f"run_{run}"
     schema = reading_schema(view)
-    reading = llm.replay(out, schema) if replay else llm.call(client, model, key, body, schema, out)[0]
+    if replay:
+        llm.check_saved_request(out, model, _prompt(view), list(_images(case_out, view)))
+        reading = llm.replay(out, schema)
+    else:
+        reading = llm.call(client, model, key, body, schema, out)[0]
     return None if reading is None else to_run_marks(reading, view, run)
 
 

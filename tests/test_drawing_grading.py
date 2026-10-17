@@ -91,3 +91,10 @@ def test_template_and_no_overwrite(tmp_path):
     with pytest.raises(FileExistsError):
         grading.write_template([output], 1, root=tmp_path)
     assert path.read_text() == "graded"
+
+
+def test_grade_reads_the_saved_overlay_and_never_recomputes(tmp_path):
+    image = np.full((20, 30, 3), 7, np.uint8)
+    grading.save_overlay(tmp_path, "base", image)
+    loaded = grading.load_overlays(tmp_path, ["base", "mid"])
+    assert list(loaded) == ["base"] and (loaded["base"] == image).all()

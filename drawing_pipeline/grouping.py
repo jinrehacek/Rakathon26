@@ -93,9 +93,24 @@ def _marks_text(marks: list[Mark], orientations, fixed: list[Group]) -> str:
     return "Marks JSON:\n" + json.dumps(payload, ensure_ascii=False)
 
 
-def _replay(out: Path, marks: list[Mark], orientations, fixed: list[Group]) -> GroupingResponse | None:
+def _images(case_out: Path, marks: list[Mark]) -> tuple[bytes, np.ndarray]:
+    """The original scan bytes and the annotated sheet, as sent."""
+    cleaned = cv.imread(str(case_out / "preprocess/cleaned.png"), cv.IMREAD_COLOR)
+    if cleaned is None:
+        raise FileNotFoundError(case_out / "preprocess/cleaned.png")
+    return (case_out / "preprocess/aligned.png").read_bytes(), annotated_sheet(cleaned, marks)
+
+
+def _png(image: np.ndarray) -> bytes:
+    return cv.imencode(".png", image)[1].tobytes()
+
+
+def _replay(case_out: Path, out: Path, marks: list[Mark], orientations, fixed: list[Group],
+            model: str) -> GroupingResponse | None:
     # Mark IDs such as base.u1 are renumbered when a threshold changes, so a saved answer is only valid
-    # for the exact marks it was asked about.
+    # for the exact marks it was asked about. The Marks JSON has no geometry, so the images are checked too.
+    original, annotated = _images(case_out, marks)
+    llm.check_saved_request(out, model, PROMPT.read_text(encoding="utf-8"), [original, _png(annotated)])
     saved = json.loads((out / "request.json").read_text(encoding="utf-8"))
     sent = [p["text"] for p in saved["parts"] if p.get("text", "").startswith("Marks JSON:")]
     if sent != [_marks_text(marks, orientations, fixed)]:
@@ -105,15 +120,12 @@ def _replay(out: Path, marks: list[Mark], orientations, fixed: list[Group]) -> G
 
 def _ask(case_out: Path, marks: list[Mark], orientations, fixed: list[Group], client: httpx.Client, key: str,
          model: str, out: Path) -> GroupingResponse | None:
-    cleaned = cv.imread(str(case_out / "preprocess/cleaned.png"), cv.IMREAD_COLOR)
-    if cleaned is None:
-        raise FileNotFoundError(case_out / "preprocess/cleaned.png")
+    original, annotated = _images(case_out, marks)
     out.mkdir(parents=True, exist_ok=True)
-    annotated = annotated_sheet(cleaned, marks)
     cv.imwrite(str(out / "annotated.png"), annotated)
     parts = [{"text": PROMPT.read_text(encoding="utf-8")},
-             {"text": "Original scan:"}, llm.image_part((case_out / "preprocess/aligned.png").read_bytes()),
-             {"text": "Cleaned sheet with mark IDs:"}, llm.image_part(cv.imencode(".png", annotated)[1].tobytes()),
+             {"text": "Original scan:"}, llm.image_part(original),
+             {"text": "Cleaned sheet with mark IDs:"}, llm.image_part(_png(annotated)),
              {"text": _marks_text(marks, orientations, fixed)}]
     parsed, _ = llm.call(client, model, key, llm.request_body(parts, GroupingResponse), GroupingResponse, out)
     return parsed
@@ -130,7 +142,7 @@ def run_grouping(case_out: Path, marks: list[Mark], orientations: dict[str, Obse
             raise ValueError(f"Fixed group {group.id} has unknown marks {sorted(unknown)}")
     if not marks:
         return fixed, [], [], check_groups(fixed, marks)
-    response = _replay(out, marks, orientations, fixed) if replay else _ask(case_out, marks, orientations, fixed, client, key, model, out)
+    response = _replay(case_out, out, marks, orientations, fixed, model) if replay else _ask(case_out, marks, orientations, fixed, client, key, model, out)
     if response is None:
         raise RuntimeError(f"Grouping call produced no usable response; see {out}")
     groups, standalone, not_lesion = _clean(response, known, fixed)

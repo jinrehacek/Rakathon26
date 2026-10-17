@@ -117,6 +117,25 @@ def call(client: httpx.Client, model: str, key: str, body: dict, schema: type[T]
     return None, history
 
 
+def check_saved_request(out: Path, model: str, prompt: str, images: list[bytes] | None = None) -> None:
+    """Replay only reuses a response for the model, prompt and (if given) images it was asked with."""
+    path = out / "request.json"
+    if not path.is_file():
+        raise RuntimeError(f"No saved request in {out}; rerun without --replay")
+    saved = json.loads(path.read_text(encoding="utf-8"))
+    texts = [p["text"] for p in saved["parts"] if "text" in p]
+    hashes = [p["image_sha256"] for p in saved["parts"] if "image_sha256" in p]
+    if saved.get("model") != model:
+        problem = f"model {saved.get('model')}, not {model}"
+    elif not texts or texts[0] != prompt:
+        problem = "a different prompt"
+    elif images is not None and hashes != [sha256(image) for image in images]:
+        problem = "different images"
+    else:
+        return
+    raise RuntimeError(f"Saved request in {out} used {problem}; rerun without --replay")
+
+
 def replay(out: Path, schema: type[T]) -> T | None:
     """Re-read the last successful saved response in out, with no API call. For rebuilding later stages."""
     for path in sorted(out.glob("attempt_*_response.json"), reverse=True):
