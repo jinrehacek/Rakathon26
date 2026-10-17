@@ -128,5 +128,5 @@ with cases 5 and 8 skipped. These are pairing results on this batch.
   Export codes, raw source titles and the canonical polygon geometry are unchanged.
 
 See [preprocessing usage](../preprocess/README.md),
-[review UI usage](../review-ui/README.md) and
+[archived review UI usage](REVIEW-UI-ARCHIVE.md) and
 [REDCap specification](redcap/REDCAP.md).

@@ -12,4 +12,3 @@ __pycache__/
 /.preprocess-exports/
 /preprocess/.preprocess-private/
 /preprocess/.preprocess-exports/
-/review-ui/.local-data/

@@ -1,3 +1,10 @@
+# Archived review UI documentation
+
+The review UI implementation was removed on 2026-10-17 for a rebuild.
+The following describes the removed prototype. Its commands and code paths
+are historical references and no longer run in this checkout.
+Current specifications remain in `data_schema/` and `Other/`.
+
 # Region review demo
 
 Plain HTML, CSS and browser JavaScript. No build, npm dependencies, LLM calls
@@ -51,7 +58,7 @@ Open http://127.0.0.1:8766. A file URL will not work with ES modules.
   and displayed with the random pair ID retained for traceability. This is not
   an assertion of a REDCap record ID or a restored birth number.
 - Two synthetic lesion records from
-  [`fixtures/prefilled-analysis.json`](fixtures/prefilled-analysis.json), via
+  `review-ui/fixtures/prefilled-analysis.json`, via
   `analysis.js`, with original JSON and evidence preserved.
 - **All 12 lesion properties prefill from JSON**: histology, X/Y/Z dimensions,
   extension, perineural invasion, and primary/secondary/tertiary Gleason patterns
@@ -147,7 +154,7 @@ The default, separately versioned **UI-only** input contract is
 anchors and `lesions`. Each lesion has canonical `regions` and a `fields` object
 keyed by the twelve documented REDCap lesion field names. Each supplied field
 carries a raw REDCap string value, availability status, basis and evidence IDs.
-The paired [synthetic report](fixtures/prefilled-report.txt) anchors the mock
+The paired synthetic report at `review-ui/fixtures/prefilled-report.txt` anchors the mock
 values; no extraction or interpretation of the displayed scans occurs.
 
 `showcase-analysis.js` checks the exact text hash, quotations, references, field
@@ -185,7 +192,7 @@ remaining surgery fields must be handled elsewhere. This first-import draft
 does not implement corrections/deletions of previously imported REDCap records;
 omitting an excluded lesion would not delete an existing registry instance.
 Lesion-only import has not been tested in live REDCap. See
-[the specification](../Other/redcap/REDCAP.md), especially its open questions.
+[the specification](redcap/REDCAP.md), especially its open questions.
 
 ## Checks
 
@@ -199,7 +206,7 @@ The atlas labels key 41 **Urethra**; its mapped source title is **External ureth
 sphincter**. The UI explicitly shows both source names and flags the discrepancy
 for clinical confirmation. This is not a claim that the two terms are equivalent.
 All sector names, sides, levels and hit areas still need doctor validation before
-clinical use. See the [UX + preprocessing handoff](../Other/UX-PREPROCESS-TODO.md).
+clinical use. See the [UX + preprocessing handoff](UX-PREPROCESS-TODO.md).
 
 Run these in the developer console on the local page:
 
@@ -225,4 +232,4 @@ Run the local preparation checks from the repository root:
 uv run --no-project --python 3.12 python -I -m unittest discover -s review-ui/tests -p 'test_*.py'
 ```
 
-The anatomical template and geometry are attributed in [assets/NOTICE.txt](assets/NOTICE.txt).
+The anatomical template and geometry are attributed in `review-ui/assets/NOTICE.txt`.

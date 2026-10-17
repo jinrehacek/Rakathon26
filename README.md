@@ -24,14 +24,6 @@ Czech OCR and Gemini report extraction with evidence-backed `report-3` output. S
 python -m report_extractor run --input fixtures/synthetic_report.txt --mode fixture --fixture-file fixtures/synthetic_report3_response.json --output-dir Other/output/fixture-demo
 ```
 
-### `review-ui/`
-
-Doctor review demo with REDCap lesion CSV export. See [review-ui/README.md](review-ui/README.md).
-
-```sh
-uv run --no-project --python 3.12 python -I -m http.server 8766 --bind 127.0.0.1 --directory review-ui
-```
-
 ### `central/`
 
 Matches complete report and drawing extractions, retains conflicts for review, and applies doctor decisions in new runs. See [central/README.md](central/README.md).
@@ -44,7 +36,9 @@ Matches complete report and drawing extractions, retains conflicts for review, a
 
 Commands assume the repository root unless they change directory. The authoritative schema is [data_schema/STRUCTURE.md](data_schema/STRUCTURE.md). See [Other/redcap/REDCAP.md](Other/redcap/REDCAP.md) for REDCap fields and [Other/IMAGE_PIPELINE.md](Other/IMAGE_PIPELINE.md) for the image pipeline proposal.
 
-The drawing pipeline is being built on a separate branch. Tests exist in `tests/`, `preprocess/tests/`, and `review-ui/tests/`.
+The drawing pipeline is being built on a separate branch. Tests exist in `tests/` and `preprocess/tests/`.
+
+The previous review UI has been removed for a rebuild. Its [archived documentation](Other/REVIEW-UI-ARCHIVE.md) and [UX handoff notes](Other/UX-PREPROCESS-TODO.md) remain as reference.
 
 Supplied artificial scans in `Other/` are Git-tracked; use synthetic cases for
 shared screenshots or remote demos. Keep production records local until the
