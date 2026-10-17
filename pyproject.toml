@@ -9,8 +9,19 @@ description = "Offline, evidence-backed text-report extraction prototype"
 requires-python = ">=3.11"
 dependencies = ["pydantic>=2.14,<3"]
 
+[project.optional-dependencies]
+drawing = [
+    "httpx>=0.28,<1",
+    "numpy==2.2.6",
+    "opencv-python-headless==4.11.0.86",
+]
+
+[dependency-groups]
+dev = ["pytest"]
+
 [project.scripts]
 report-extractor = "report_extractor.cli:main"
+central = "central.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["report_extractor*"]
+include = ["report_extractor*", "drawing_pipeline*", "central*"]

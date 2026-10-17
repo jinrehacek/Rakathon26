@@ -132,6 +132,24 @@ class ObservationProperty(StrEnum):
     DIMENSIONS = "dimensions"
     TEXTUAL_LOCATION = "textual_location"
     PRESENCE = "presence"
+    REPORTED_LABEL = "reported_label"
+    DOMINANT = "dominant"
+    LATERALITY = "laterality"
+    LEVEL = "level"
+    ZONE = "zone"
+    ANTEROPOSTERIOR = "anteroposterior"
+    EXTRAPROSTATIC_EXTENSION = "extraprostatic_extension"
+    PERINEURAL_INVASION = "perineural_invasion"
+    HISTOLOGY_TYPE = "histology_type"
+    CLASSIFICATION_PN = "classification_pn"
+    CLASSIFICATION_PM = "classification_pm"
+    REPORTED_LESION_COUNT = "reported_lesion_count"
+    MULTIFOCALITY = "multifocality"
+    HISTOLOGY = "histology"
+    ICD_O = "icd_o"
+    SEMINAL_VESICLE_INVASION = "seminal_vesicle_invasion"
+    FINDING_TYPE = "finding_type"
+
 
 
 class ImageRegion(StrictModel):
@@ -174,11 +192,35 @@ class CodedValue(StrictModel):
     original_wording: str | None = None
 
 
+class GleasonPattern(StrictModel):
+    pattern: int = Field(ge=1, le=5)
+    percent: float | None = Field(default=None, ge=0, le=100)
+
+
 class GleasonPatternsValue(StrictModel):
     type: Literal["gleason_patterns"]
-    primary_pattern: int = Field(ge=1, le=5)
-    secondary_pattern: int = Field(ge=1, le=5)
+    primary_pattern: int | None = Field(default=None, ge=1, le=5)
+    secondary_pattern: int | None = Field(default=None, ge=1, le=5)
+    primary: GleasonPattern | None = None
+    secondary: GleasonPattern | None = None
+    tertiary: GleasonPattern | None = None
     original_wording: str
+
+    @model_validator(mode="after")
+    def require_one_shape(self) -> GleasonPatternsValue:
+        flat = self.primary_pattern is not None or self.secondary_pattern is not None
+        nested = self.primary is not None or self.secondary is not None or self.tertiary is not None
+        if flat == nested:
+            raise ValueError("use either flat report-1 patterns or nested report-2 patterns")
+        if flat and (self.primary_pattern is None or self.secondary_pattern is None):
+            raise ValueError("both flat patterns are required")
+        if nested and (self.primary is None or self.secondary is None):
+            raise ValueError("primary and secondary patterns are required")
+        percentages = [p.percent for p in (self.primary, self.secondary, self.tertiary)
+                       if p is not None and p.percent is not None]
+        if sum(percentages) > 100:
+            raise ValueError("pattern percentages cannot exceed 100")
+        return self
 
 
 class GleasonScoreValue(StrictModel):
@@ -218,7 +260,11 @@ class DimensionsValue(StrictModel):
 
 class LocationValue(StrictModel):
     type: Literal["location"]
-    description: str
+    description: str | None = None
+    laterality: Literal["right", "left", "bilateral", "midline"] | None = None
+    levels: tuple[Literal["base", "mid", "apex"], ...] | None = Field(default=None, min_length=1)
+    zones: tuple[Literal["pz", "tz", "cz", "as", "sv"], ...] | None = Field(default=None, min_length=1)
+    anteroposterior: Literal["anterior", "posterior"] | None = None
     original_wording: str
 
 
@@ -228,9 +274,25 @@ class PresenceValue(StrictModel):
     original_wording: str
 
 
+class TextValue(StrictModel):
+    type: Literal["text"]
+    text: str
+    original_wording: str
+
+
+class QuantityValue(StrictModel):
+    type: Literal["quantity"]
+    value: float = Field(ge=0)
+    unit: str | None = None
+    approximate: bool = False
+    original_wording: str
+
+
 ObservationValue = Annotated[
     Union[
         CodedValue,
+        TextValue,
+        QuantityValue,
         GleasonPatternsValue,
         GleasonScoreValue,
         ClassificationValue,
@@ -252,6 +314,24 @@ PROPERTY_VALUE_TYPES: dict[ObservationProperty, set[str]] = {
     ObservationProperty.DIMENSIONS: {"dimensions"},
     ObservationProperty.TEXTUAL_LOCATION: {"location"},
     ObservationProperty.PRESENCE: {"presence"},
+    ObservationProperty.REPORTED_LABEL: {"text"},
+    ObservationProperty.DOMINANT: {"presence"},
+    ObservationProperty.LATERALITY: {"location"},
+    ObservationProperty.LEVEL: {"location"},
+    ObservationProperty.ZONE: {"location"},
+    ObservationProperty.ANTEROPOSTERIOR: {"location"},
+    ObservationProperty.EXTRAPROSTATIC_EXTENSION: {"presence"},
+    ObservationProperty.PERINEURAL_INVASION: {"presence"},
+    ObservationProperty.HISTOLOGY_TYPE: {"coded"},
+    ObservationProperty.CLASSIFICATION_PN: {"classification"},
+    ObservationProperty.CLASSIFICATION_PM: {"classification"},
+    ObservationProperty.REPORTED_LESION_COUNT: {"quantity"},
+    ObservationProperty.MULTIFOCALITY: {"coded"},
+    ObservationProperty.HISTOLOGY: {"coded"},
+    ObservationProperty.ICD_O: {"classification"},
+    ObservationProperty.SEMINAL_VESICLE_INVASION: {"presence"},
+    ObservationProperty.FINDING_TYPE: {"text"},
+
 }
 
 
