@@ -1,6 +1,6 @@
 # Central matching and assessment
 
-`central` implements steps 3 and 4 in [CENTRAL-SPEC.md](../Other/CENTRAL-SPEC.md). It reads a complete `report-2` extraction and a `drawing-1` output, then writes a reviewable `combined-1` draft. It does not generate report extractions or export CSV.
+`central` implements steps 3 and 4 in [CENTRAL-SPEC.md](../Other/CENTRAL-SPEC.md). It reads a complete `report-3` extraction and a `drawing-1` output, then writes a reviewable `combined-1` draft. It does not generate report extractions or export CSV.
 
 Run from the repository root with its Python environment:
 
@@ -10,7 +10,19 @@ Run from the repository root with its Python environment:
 
 Inputs are `Other/output/report/<case>/report.json` and `Other/output/drawing/<case>/drawing.json`. The source paths must identify the same preprocessing case. Each run pins the resolved files and their SHA-256 hashes, writes a new folder under `Other/output/combined/<case>/`, and atomically updates the relative `latest` link. Existing runs remain inspectable.
 
-The drawing contract is copied into this package, with its upstream revision recorded in the file. Central does not import the drawing pipeline. Report generation remains a separate task; the existing report extractor still writes its original contract.
+The drawing contract is copied into this package, with its upstream revision recorded in the file. Central does not import the drawing pipeline. Report generation runs separately through `report_extractor case`; its published `report-3` bundle uses the same semantic validator as the central loader.
+
+The loader rejects older report versions, incomplete extractions, quarantine and
+validation errors. Valid review issues stay open as doctor questions. Conflicting
+report observations become one unresolved property with all source alternatives;
+matching and consistency checks do not choose a value by list order. Exact zones
+stay exact through matching and text-only sector proposals. Broad PZ/TZ can match
+their subzones.
+
+Specimen EPE/PNI remains on the specimen. Explicit negatives propose lesion
+absence with basis `inferred` and require confirmation. Positive statements with
+several lesions raise attribution questions; a single-lesion attribution also
+requires confirmation. Contradictory focus findings remain visible.
 
 ## Two readings
 

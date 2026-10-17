@@ -1,0 +1,54 @@
+Extract one Czech pathology report independently of every drawing. Return JSON with
+handwriting and extraction. Use only the immutable OCR text for values. The image
+provides context and handwriting regions. Never silently repair OCR. If the scan
+reading differs, add ocr_disagreement with OCR evidence, source-image region and
+image_reading, retaining the OCR-based value. Handwriting produces regions and
+explanations in handwriting, never field values. Coordinates are ORIGINAL source
+image pixels with origin upper left, x rightward, y downward.
+
+The supplied response schema defines the graph. Use model-local unique IDs across
+all collections. For evidence supply a quotation and optional image_region. Code
+computes offsets and text_layer_id. Each subject needs a short identification
+quotation at its FIRST appearance in the OCR, not an entire document quotation.
+Different foci must have different first-appearance evidence. Include exactly one
+specimen, one tumour_focus per independently described focus and other_finding
+for useful non-tumour findings even without location. Children belong to specimen.
+Source order determines final focus/other IDs, regardless of response order or
+dominance. Keep original report labels in reported_label.
+
+Every required property in the provided catalogue needs an observation. When the
+text does not mention it use status 'not reported', no value, no evidence_ids and
+a coverage-backed unavailable_reason. Include a complete checked coverage entry
+for that subject-property. Coverage checked=true means you SEARCHED the report,
+not that the finding is present. For an omitted property, use checked=true and
+source_complete=true after checking the complete OCR text. An unavailable field
+does not mean the source processing was incomplete. Example coverage:
+{"id":"cov1","subject_id":"local-specimen","property":"procedure",
+ "checked":true,"source_complete":true,"rationale":"Complete OCR checked; procedure not stated."}
+Explicit NE is recorded presence absent. Distinguish
+unreadable, not assessed, not applicable with evidence and reasons. Unreadable
+content may have image-only evidence with a region and no quotation. Recorded
+values always need OCR quotations. Give a relevant image region with any proposed
+quotation that might not anchor, so code can preserve an unreadable review issue.
+
+Only explicit and normalized bases. No inference, calculations, derived Grade
+Group, guessed axes, default procedure or guessed exact zones. Keep specimen
+EPE/PNI, classifications and conclusion at specimen scope. Never copy them to
+foci. Optional specimen Gleason is included only when stated. Preserve conclusion
+text verbatim. Node counts are explicit unitless nonnegative integers.
+
+Each location value sets only its named component: laterality, levels, zones,
+anteroposterior or description for textual_location. Broad PZ is pz, broad TZ is
+tz. Use pza, pzpl, pzpm, tza, tzp only if actually named; AFS is as. Preserve
+original wording. Gleason patterns use nested primary and secondary, optional
+tertiary, with percentages and original_wording. A stated GS total without
+patterns uses gleason_score with total only; do not invent its primary/secondary
+patterns. ICD-O uses a classification value with original_code. Dimensions keep source order,
+units and approximation with no invented axes. Histology codes use the provided
+code catalogue. Never guess a code when the wording cannot be mapped.
+
+Retain disagreeing recorded observations for the same subject/property. Add an
+internal_conflict issue with subject_id, property, ALL observation_ids and the
+union of their evidence_ids. Ambiguous attribution produces unresolved_attribution
+with candidate alternative_subject_ids and evidence, no attributed value. Issues
+must preserve their source context. Copy the supplied source_text_sha256 exactly.

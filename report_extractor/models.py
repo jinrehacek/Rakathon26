@@ -149,6 +149,10 @@ class ObservationProperty(StrEnum):
     ICD_O = "icd_o"
     SEMINAL_VESICLE_INVASION = "seminal_vesicle_invasion"
     FINDING_TYPE = "finding_type"
+    PROCEDURE = "procedure"
+    LYMPH_NODES_EXAMINED = "lymph_nodes_examined"
+    LYMPH_NODES_POSITIVE = "lymph_nodes_positive"
+    CONCLUSION_TEXT = "conclusion_text"
 
 
 
@@ -164,11 +168,22 @@ class Evidence(StrictModel):
     id: str
     text_layer_id: str
     page: Literal[1] = 1
-    quotation: str
-    start_offset: int = Field(ge=0)
-    end_offset: int = Field(gt=0)
+    quotation: str | None = None
+    start_offset: int | None = Field(default=None, ge=0)
+    end_offset: int | None = Field(default=None, gt=0)
     offset_convention: Literal[OFFSET_CONVENTION] = OFFSET_CONVENTION
     image_region: ImageRegion | None = None
+
+
+    @model_validator(mode="after")
+    def text_or_image(self) -> Evidence:
+        fields = (self.quotation, self.start_offset, self.end_offset)
+        if all(value is None for value in fields):
+            if self.image_region is None:
+                raise ValueError("image-only evidence requires a source region")
+        elif any(value is None for value in fields) or not self.quotation:
+            raise ValueError("text evidence requires quotation and both offsets")
+        return self
 
 
 class Subject(StrictModel):
@@ -225,14 +240,16 @@ class GleasonPatternsValue(StrictModel):
 
 class GleasonScoreValue(StrictModel):
     type: Literal["gleason_score"]
-    primary_pattern: int = Field(ge=1, le=5)
-    secondary_pattern: int = Field(ge=1, le=5)
+    primary_pattern: int | None = Field(default=None, ge=1, le=5)
+    secondary_pattern: int | None = Field(default=None, ge=1, le=5)
     total: int = Field(ge=2, le=10)
     original_wording: str
 
     @model_validator(mode="after")
     def total_matches_patterns(self) -> GleasonScoreValue:
-        if self.total != self.primary_pattern + self.secondary_pattern:
+        if (self.primary_pattern is None) != (self.secondary_pattern is None):
+            raise ValueError("state both patterns or retain only the reported total")
+        if self.primary_pattern is not None and self.total != self.primary_pattern + self.secondary_pattern:
             raise ValueError("Gleason total must equal the two stated patterns")
         return self
 
@@ -263,7 +280,7 @@ class LocationValue(StrictModel):
     description: str | None = None
     laterality: Literal["right", "left", "bilateral", "midline"] | None = None
     levels: tuple[Literal["base", "mid", "apex"], ...] | None = Field(default=None, min_length=1)
-    zones: tuple[Literal["pz", "tz", "cz", "as", "sv"], ...] | None = Field(default=None, min_length=1)
+    zones: tuple[Literal["pz", "tz", "cz", "as", "sv", "pza", "pzpl", "pzpm", "tza", "tzp"], ...] | None = Field(default=None, min_length=1)
     anteroposterior: Literal["anterior", "posterior"] | None = None
     original_wording: str
 
@@ -331,6 +348,10 @@ PROPERTY_VALUE_TYPES: dict[ObservationProperty, set[str]] = {
     ObservationProperty.ICD_O: {"classification"},
     ObservationProperty.SEMINAL_VESICLE_INVASION: {"presence"},
     ObservationProperty.FINDING_TYPE: {"text"},
+    ObservationProperty.PROCEDURE: {"text"},
+    ObservationProperty.LYMPH_NODES_EXAMINED: {"quantity"},
+    ObservationProperty.LYMPH_NODES_POSITIVE: {"quantity"},
+    ObservationProperty.CONCLUSION_TEXT: {"text"},
 
 }
 
@@ -387,12 +408,57 @@ class CoverageCheck(StrictModel):
     rationale: str
 
 
+class TextSpan(StrictModel):
+    start_offset: int = Field(ge=0)
+    end_offset: int = Field(gt=0)
+
+    @model_validator(mode="after")
+    def ordered(self) -> TextSpan:
+        if self.end_offset <= self.start_offset:
+            raise ValueError("text span must be nonempty")
+        return self
+
+
 class ExtractionIssue(StrictModel):
     id: str
-    kind: Literal["unresolved_attribution"]
-    summary: str
+    kind: Literal["unresolved_attribution", "internal_conflict", "handwriting_present",
+                  "ocr_disagreement", "unanchored_evidence", "ambiguous_evidence"]
+    summary: str = Field(min_length=1)
     evidence_ids: tuple[str, ...] = Field(min_length=1)
-    alternative_subject_ids: tuple[str, ...] = Field(min_length=1)
+    alternative_subject_ids: tuple[str, ...] = ()
+    subject_id: str | None = None
+    property: ObservationProperty | None = None
+    observation_ids: tuple[str, ...] = ()
+    image_region: ImageRegion | None = None
+    image_reading: str | None = None
+    proposed_value: ObservationValue | None = None
+    proposed_quotation: str | None = None
+    failure_reason: str | None = None
+    candidate_spans: tuple[TextSpan, ...] = ()
+    selected_span: TextSpan | None = None
+
+    @model_validator(mode="after")
+    def required_context(self) -> ExtractionIssue:
+        if self.kind == "unresolved_attribution" and len(set(self.alternative_subject_ids)) < 2:
+            raise ValueError("unresolved attribution requires alternatives")
+        if self.kind in {"internal_conflict", "unanchored_evidence", "ambiguous_evidence"}:
+            if not self.subject_id or self.property is None:
+                raise ValueError("issue requires a subject and property")
+        if self.kind == "internal_conflict" and len(set(self.observation_ids)) < 2:
+            raise ValueError("internal conflict requires all conflicting observations")
+        if self.kind in {"handwriting_present", "ocr_disagreement", "unanchored_evidence"} and self.image_region is None:
+            raise ValueError("issue requires a source-image region")
+        if self.kind == "ocr_disagreement" and not self.image_reading:
+            raise ValueError("OCR disagreement requires the image reading")
+        if self.kind == "unanchored_evidence" and (
+            self.proposed_value is None or not self.proposed_quotation or not self.failure_reason
+        ):
+            raise ValueError("unanchored evidence requires the proposed value, quotation and failure reason")
+        if self.kind == "ambiguous_evidence" and (
+            len(self.candidate_spans) < 2 or self.selected_span != self.candidate_spans[0]
+        ):
+            raise ValueError("ambiguous evidence requires candidate spans and the first selected span")
+        return self
 
 
 class ExtractionProposal(StrictModel):

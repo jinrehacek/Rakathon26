@@ -217,7 +217,7 @@ class MatchingMetadataTests(unittest.TestCase):
         r = report("a")
         locate(r, "a")
         candidate = build_candidates(drawing(mark()))[0]
-        for field in ("sides", "levels", "zones", "anteroposterior"):
+        for field in ("sides", "levels", "zones", "exact_zones", "anteroposterior"):
             candidate[field] = []
         candidate["side_basis"] = "inferred"
         score, comparisons = pair_score(r, {"id": "a"}, candidate)
