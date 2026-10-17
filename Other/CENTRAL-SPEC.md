@@ -222,12 +222,12 @@ Built from `drawing.json`:
 
 ### Sector rule
 
-A sector of a mark is **in** if either of these holds:
+A sector of a mark is **in** if both of these hold:
 
-- share ≥ 0.15, using the `SectorShare.share` value supplied in `sectors_polygon`
-- Gemini named it (`sectors_named`)
+- Gemini named it in at least 2 runs (`sectors_named_by_run`)
+- share ≥ 0.15, using the `SectorShare.share` value supplied in `sectors_polygon`. A mark with no polygon skips this condition.
 
-A sector listed in `sectors_polygon` or `sectors_cv` that satisfies neither condition is **maybe**. The UI shows maybe sectors unticked.
+A sector listed in `sectors_named`, `sectors_polygon` or `sectors_cv` that is not in is **maybe**. The UI shows maybe sectors unticked.
 
 The central system owns these thresholds in its own versioned rule set. It does not read `extraction.thresholds` from `drawing.json`, because the drawing team may retune theirs for signal purposes.
 

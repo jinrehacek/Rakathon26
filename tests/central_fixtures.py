@@ -75,7 +75,7 @@ def write_case(root: Path, case="synthetic-case") -> tuple[Path, Path]:
              for name in ("mid", "base", "apex")]
     marks = [{"id": sector["level"] + ".m1", "view": sector["level"], "kind": "closed outline", "runs_found": 3,
               "run_local_ids": ["m1", "m1", "m1"], "polygon_ref": None, "closed": True, "box_ref": None,
-              "basis": "inferred", "sectors_named": [sector], "sectors_polygon": [{**sector, "share": 0.8, "px": 80}],
+              "basis": "inferred", "sectors_named_by_run": [[sector]] * 3, "sectors_named": [sector], "sectors_polygon": [{**sector, "share": 0.8, "px": 80}],
               "sectors_cv": [], "cv_regions": [], "redcap": [sector["redcap"]], "review_status": "unreviewed"}
              for sector in sectors]
     letters = [{"id": name + ".letter", "view": name, "kind": "side letter", "runs_found": 3,
