@@ -90,7 +90,9 @@ class ReviewTests(unittest.TestCase):
 
     def test_reviewer_value_retains_original_source_assessment(self):
         original = {"property": "grade_group", "status": "recorded", "value": {"type": "coded", "code": "2"},
-                    "basis": "explicit", "supports": ["report:obs-a"], "opposes": [], "confidence": {"final": "high"}}
+                    "basis": "explicit", "supports": ["report:obs-a"], "opposes": ["report:other"],
+                    "candidates": [{"value": {"type": "coded", "code": "4"}, "supports": ["report:other"]}],
+                    "confidence": {"final": "high"}}
         result = {"lesions": [{"id": "L1", "focus": "f1", "properties": [original]}], "issues": []}
         entry = decision("set_value", {"lesion": "L1", "property": "grade_group"},
                          {"status": "recorded", "value": {"type": "coded", "code": "3", "original_wording": "review selection"}})
@@ -101,6 +103,9 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(prop["basis"], "inferred")
         self.assertEqual(prop["supports"], ["decision:d1"])
         self.assertEqual(prop["tags"], ["reviewer selection"])
+        self.assertEqual(prop["opposes"], [])
+        self.assertNotIn("candidates", prop)
+        self.assertEqual(prop["source_assessment"]["opposes"], ["report:other"])
         self.assertEqual(result["lesions"][0]["properties"][0], original)
         self.assertEqual(touched, {"L1", "f1"})
 
