@@ -125,7 +125,8 @@ pixels, stable case IDs, original IDs in the manifest and exact output hashes.
 
 The Linux run on `Other/data` with Tesseract 5.5.0 paired 40 of 40 cases from 80
 scans, with 0 filename mismatches, no skipped cases and no reported issues. All
-80 original hashes and 80 output hashes were checked. Filename numbers were used
+80 original hashes and 80 output hashes were checked. The fresh v2 run also
+verified all 40 manifest original IDs and preserved every prior random case ID. Filename numbers were used
 only as a diagnostic after pairing. The user-supplied main comparison was 38 of
 40, with 0 mismatches and cases 5 and 8 skipped; it was not rerun here.
 These results test pairing on this batch, not complete identifier removal.
