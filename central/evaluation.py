@@ -38,13 +38,16 @@ def score_case(labels: dict, combined: dict, drawing: dict) -> dict:
     for name in ("report", "drawing"):
         if labels["inputs"][name]["sha256"] != combined["inputs"][name]["sha256"]:
             raise ValueError(f"{name} reference labels do not match the pinned run")
+    if combined.get("decisions_applied"):
+        raise ValueError("reviewed runs cannot be scored as automatic accuracy; evaluate an unreviewed run")
     assignment = combined["matching"]["hypotheses"]
     rules = {hyp["focus"]: {m["subject"] for m in hyp["memberships"] if m.get("role") == "diagram depiction"}
              for hyp in assignment}
     rule_sectors = {lesion.get("focus"): set(lesion["sectors"]["in"]) for lesion in combined["lesions"]}
     brain = combined["brains"]["llm"]
-    llm = {item["focus"]: set(item["marks"]) for item in brain.get("assignments", [])}
-    readers = {"rules": (rules, True), "llm": (llm, brain.get("status") == "ok")}
+    current_llm = brain.get("status") == "ok" and brain.get("input_hashes_match") is True
+    llm = {item["focus"]: set(item["marks"]) for item in brain.get("assignments", [])} if current_llm else {}
+    readers = {"rules": (rules, True), "llm": (llm, current_llm)}
     scores = {}
     for name, (assignments, available) in readers.items():
         items = []
@@ -63,7 +66,7 @@ def score_case(labels: dict, combined: dict, drawing: dict) -> dict:
                         "correct_assignments": sum(item["assignment_correct"] for item in scored),
                         "mean_sector_jaccard": sum(item["sector_jaccard"] for item in scored) / len(scored) if scored else None}
     rules_issues = combined["brains"]["rules"].get("issues", [])
-    llm_issues = brain.get("issues", []) if brain.get("status") == "ok" else []
+    llm_issues = brain.get("issues", []) if current_llm else []
     counts = {"rules": dict(Counter(issue["kind"] for issue in rules_issues)),
               "llm": dict(Counter(issue["kind"] for issue in llm_issues))}
     return {"case_id": labels["case_id"], "scores": scores, "issue_counts": counts,

@@ -94,6 +94,65 @@ class CombineRegressionTests(unittest.TestCase):
                 self.assertEqual(result, self.interpretation)
                 self.assertEqual(matching, self.matching)
 
+    def test_issue_dedupe_keeps_each_distinct_reason(self):
+        self.interpretation["issues"] = [{
+            "kind": "other", "severity": "question", "context": ["base.mb"],
+            "reason": "Shared reason.", "raised_by": ["rules"], "status": "open"}]
+        self.llm["issues"] = [
+            {"kind": "other", "severity": "question", "context": ["base.mb"],
+             "reason": "Shared reason."},
+            {"kind": "other", "severity": "question", "context": ["base.mb"],
+             "reason": "Different reason."},
+        ]
+
+        result, _ = combine(self.interpretation, self.matching, self.llm)
+
+        self.assertEqual([issue["reason"] for issue in result["issues"]],
+                         ["Shared reason.", "Different reason."])
+        self.assertEqual(result["issues"][0]["raised_by"], ["llm", "rules"])
+
+    def test_qualified_issue_context_aliases_follow_reviewed_targets(self):
+        aliases = ("focus-a", "report:focus-a", "subject:focus-a", "focus:focus-a",
+                   "base.ma", "mark:base.ma", "standalone:base.ma", "drawing:base.ma")
+        for alias in aliases:
+            with self.subTest(alias=alias):
+                self.llm["issues"] = [{
+                    "kind": "other", "severity": "question", "context": [alias],
+                    "reason": "Stale issue on a reviewed target."}]
+                result, _ = combine(self.interpretation, self.matching, self.llm,
+                                    touched={"focus-a"})
+                self.assertEqual(result["issues"], [])
+
+    def test_qualified_context_preserves_report_and_drawing_namespace_collisions(self):
+        reviewed, unreviewed = self.interpretation["lesions"]
+        reviewed.update(focus="shared", marks=["base.other"])
+        unreviewed.update(focus="f-b", marks=["shared"])
+        for hypothesis, focus, mark in zip(
+                self.matching["hypotheses"], ("shared", "f-b"), ("base.other", "shared")):
+            hypothesis["focus"] = focus
+            hypothesis["memberships"][0]["subject"] = focus
+            hypothesis["memberships"][1]["subject"] = mark
+        for assignment, focus, mark in zip(
+                self.llm["assignments"], ("shared", "f-b"), ("base.other", "shared")):
+            assignment.update(focus=focus, marks=[mark])
+        self.llm["issues"] = [
+            {"kind": "other", "severity": "question", "context": ["report:shared"],
+             "reason": "Reviewed report focus."},
+            {"kind": "other", "severity": "question", "context": ["mark:shared"],
+             "reason": "Unreviewed drawing mark."},
+            {"kind": "other", "severity": "question", "context": ["drawing:shared"],
+             "reason": "Unreviewed drawing namespace."},
+            {"kind": "other", "severity": "question", "context": ["report:base.other"],
+             "reason": "Unreviewed report namespace."},
+        ]
+
+        result, _ = combine(self.interpretation, self.matching, self.llm,
+                            touched={"lesion-a"})
+
+        self.assertEqual([issue["reason"] for issue in result["issues"]], [
+            "Unreviewed drawing mark.", "Unreviewed drawing namespace.",
+            "Unreviewed report namespace."])
+
     def test_conflict_from_either_brain_wins_over_disagreement_cap(self):
         self.llm["assignments"][0]["marks"] = []
         for rules, llm in (("conflict", "high"), ("high", "conflict")):

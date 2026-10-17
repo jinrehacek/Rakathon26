@@ -30,3 +30,25 @@ class ProbeTests(unittest.TestCase):
         labels["inputs"] = {"report": {"sha256": "c" * 64}, "drawing": {"sha256": "b" * 64}}
         with self.assertRaisesRegex(ValueError, "pinned run"):
             score_case(labels, combined, drawing)
+
+    def test_stale_llm_reading_is_excluded_from_scores_and_issue_counts(self):
+        labels, combined, drawing = self.case()
+        combined["brains"]["llm"] = {
+            "status": "ok", "input_hashes_match": False,
+            "assignments": [{"focus": "f1", "marks": ["mid.m1"]}],
+            "issues": [{"kind": "unmatched_candidate"}, {"kind": "other"}]}
+
+        result = score_case(labels, combined, drawing)
+
+        self.assertFalse(result["scores"]["llm"]["available"])
+        self.assertEqual(result["scores"]["llm"]["scored_foci"], 0)
+        self.assertIsNone(result["scores"]["llm"]["mean_sector_jaccard"])
+        self.assertEqual(result["issue_counts"]["llm"], {})
+        self.assertEqual(result["issue_kinds_only_llm"], [])
+        self.assertEqual(result["issue_kinds_only_rules"], ["unmatched_focus"])
+
+    def test_reviewed_run_with_decisions_is_refused(self):
+        labels, combined, drawing = self.case()
+        combined["decisions_applied"] = [{"id": "review-1"}]
+        with self.assertRaisesRegex(ValueError, "reviewed runs cannot be scored"):
+            score_case(labels, combined, drawing)

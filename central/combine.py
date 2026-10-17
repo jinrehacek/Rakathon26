@@ -14,8 +14,49 @@ def lower_confidence(rules: str, llm: str) -> str:
     return min((rules, llm), key=lambda value: LEVELS[value])
 
 
+def _issue_message(issue: dict) -> str:
+    for key in ("reason", "explanation", "summary"):
+        value = issue.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
 def _issue_key(issue: dict) -> tuple:
-    return issue["kind"], tuple(sorted(issue.get("context", [])))
+    return issue["kind"], tuple(sorted(issue.get("context", []))), _issue_message(issue)
+
+
+_REPORT_REF_PREFIXES = frozenset({
+    "report", "subject", "subjects", "obs", "observation", "evidence", "focus",
+    "tumour_focus", "coverage", "coverage_check", "issue",
+})
+_DRAWING_REF_PREFIXES = frozenset({"drawing", "mark", "standalone", "view", "group", "case"})
+_SECTOR_REF_PREFIXES = frozenset({"sector", "redcap"})
+
+
+def _ref_parts(reference: str) -> tuple[str | None, str]:
+    if ":" in reference:
+        prefix, value = reference.split(":", 1)
+        if value:
+            return prefix.lower(), value
+    return None, reference
+
+
+def _touches_reviewed(reference: str, reviewed: set[str], report: set[str],
+                      drawing: set[str], other: set[str]) -> bool:
+    """Match raw and qualified LLM references without merging two namespaces."""
+    if reference in reviewed:
+        return True
+    prefix, value = _ref_parts(reference)
+    if prefix is None:
+        return False
+    if prefix in _REPORT_REF_PREFIXES:
+        return value in report or value in other
+    if prefix in _DRAWING_REF_PREFIXES:
+        return value in drawing or value in other
+    if prefix in _SECTOR_REF_PREFIXES:
+        return value in other
+    return False
 
 
 def _confidence(target: dict, opinion: dict) -> None:
@@ -46,13 +87,22 @@ def combine(interpretation: dict, matching: dict, llm: dict, *, touched: set[str
         }
     llm_assignments = {item["focus"]: set(item["marks"]) for item in llm.get("assignments", [])}
     reviewed = set(touched)
+    reviewed_report: set[str] = set()
+    reviewed_drawing: set[str] = set()
     for focus in lesions.keys() | rules_assignments.keys() | llm_assignments.keys():
         lesion = lesions.get(focus)
-        targets = {focus} | rules_assignments.get(focus, set()) | llm_assignments.get(focus, set())
+        report_targets = {focus} if focus else set()
+        drawing_targets = rules_assignments.get(focus, set()) | llm_assignments.get(focus, set())
         if lesion:
-            targets.update({lesion["id"], *lesion.get("marks", [])})
+            drawing_targets.update(lesion.get("marks", []))
+        targets = report_targets | drawing_targets
+        if lesion:
+            targets.add(lesion["id"])
         if targets & touched:
             reviewed.update(targets)
+            reviewed_report.update(report_targets)
+            reviewed_drawing.update(drawing_targets)
+    reviewed_other = reviewed - reviewed_report - reviewed_drawing
     disagreements = set()
     for focus in rules_assignments.keys() | llm_assignments.keys():
         lesion = lesions.get(focus)
@@ -76,7 +126,8 @@ def combine(interpretation: dict, matching: dict, llm: dict, *, touched: set[str
 
     keyed = {_issue_key(issue): issue for issue in issues}
     for opinion in llm.get("issues", []):
-        if set(opinion.get("context", [])) & reviewed:
+        if any(_touches_reviewed(reference, reviewed, reviewed_report, reviewed_drawing, reviewed_other)
+               for reference in opinion.get("context", [])):
             continue
         key = _issue_key(opinion)
         if key in keyed:
