@@ -8,7 +8,7 @@ from .candidates import crosswalk_rows
 from .confidence import confidence, sector_confidence, text_confidence
 from .issues import (candidate_signals, filter_signals, issue, number_issues,
                      size_note_issues)
-from .matching import location, observations, observed, subjects
+from .matching import location, observations, observed, subjects, sides_compatible
 from .rules import ZONE_TABLE
 
 
@@ -61,7 +61,7 @@ def build_interpretation(report: dict, drawing: dict, candidates: list[dict], ma
         loc = location(report, finding["id"])
         ids = [candidate["id"] for candidate in candidates if candidate["id"] not in used
                and loc["laterality"] and loc["level"]
-               and loc["laterality"] & set(candidate["sides"])
+               and sides_compatible(loc["laterality"], set(candidate["sides"]))
                and loc["level"] & set(candidate["levels"])]
         used.update(ids)
         other_findings.append({"id": f"O{number}", "kind": "other finding", "focus": finding["id"],
@@ -94,31 +94,34 @@ def build_interpretation(report: dict, drawing: dict, candidates: list[dict], ma
         sides = {side for candidate in chosen for side in candidate["sides"]}
         levels = {level for candidate in chosen for level in candidate["levels"]}
         aps = {ap for candidate in chosen for ap in candidate["anteroposterior"]}
-        side_conflict = bool(loc["laterality"] and sides and not loc["laterality"] & sides)
+        zones = {zone for candidate in chosen for zone in candidate["zones"]}
+        side_conflict = bool(loc["laterality"] and sides and not sides_compatible(loc["laterality"], sides))
         ap_conflict = bool(loc["anteroposterior"] and aps and not loc["anteroposterior"] & aps)
+        zone_conflict = bool(loc["zone"] and zones and not loc["zone"] & zones)
         lesion["side_agrees"] = bool(loc["laterality"] and sides and not side_conflict)
         lesion["level_agrees"] = bool(loc["level"] and levels and not loc["level"] - levels)
         for prop, conflict, kind in (("laterality", side_conflict, "side_conflict"),
                                       ("anteroposterior", ap_conflict, "ap_conflict"),
+                                      ("zone", zone_conflict, "other"),
                                       ("level", bool(chosen and loc["level"] and levels and loc["level"] - levels), "level_conflict")):
             if not conflict:
                 continue
             obs = observed(report, fid, prop)
             issues.append(issue(kind, "question", [lesion["id"], "report:" + obs["id"]] + lesion["marks"],
-                                "Report and drawing location disagree; review both source values."))
+                                f"Report and drawing {prop} disagree; review both source values."))
             for assessment in lesion["properties"]:
                 if assessment["property"] == prop:
                     value = assessment.pop("value")
-                    drawing_value = {"type": "location", {"laterality": "laterality", "level": "levels", "anteroposterior": "anteroposterior"}[prop]:
-                                     sorted(sides if prop == "laterality" else levels if prop == "level" else aps)}
-                    if prop != "level":
+                    drawing_value = {"type": "location", {"laterality": "laterality", "level": "levels", "zone": "zones", "anteroposterior": "anteroposterior"}[prop]:
+                                     sorted(sides if prop == "laterality" else levels if prop == "level" else zones if prop == "zone" else aps)}
+                    if prop not in {"level", "zone"}:
                         drawing_value[prop] = ("bilateral" if prop == "laterality" and len(sides) > 1 else
                                                next(iter(sides if prop == "laterality" else aps)))
                     assessment.update(disposition="unresolved", candidates=[
                         {"value": value, "supports": assessment["supports"], "basis": assessment["basis"]},
                         {"value": drawing_value, "supports": lesion["marks"], "basis": "inferred"}],
                         opposes=lesion["marks"], rationale="Conflicting source values remain unresolved.",
-                        confidence=confidence("conflict" if prop != "level" else "low",
+                        confidence=confidence("conflict" if prop not in {"level", "zone"} else "low",
                                               "Report and drawing location disagree; no combined value is selected."))
         if chosen:
             inside = sorted({code for candidate in chosen for code in candidate["sectors_in"]})
@@ -142,6 +145,8 @@ def build_interpretation(report: dict, drawing: dict, candidates: list[dict], ma
                                                              bool(chosen) and all(c["side_basis"] == "explicit" for c in chosen),
                                                              candidate_signals(drawing, chosen),
                                                              side_conflict or ap_conflict, not chosen)}
+        if zone_conflict and lesion["sectors"]["confidence"]["final"] != "conflict":
+            lesion["sectors"]["confidence"] = confidence("low", "Report and drawing zones disagree; review both readings before selecting sectors.")
         lesions.append(lesion)
 
     specimen_subject = subjects(report, "specimen")[0]

@@ -69,10 +69,12 @@ def load_decisions(path: Path | None) -> list[dict]:
     return Decisions.model_validate_json(path.read_bytes()).model_dump(mode="json")["decisions"]
 
 
-def bind_property_targets(decisions: list[dict], current: dict, previous: dict | None) -> tuple[list[dict], list[dict]]:
+def bind_property_targets(decisions: list[dict], current: dict, previous: dict | None, *,
+                          history: list[dict] | None = None) -> tuple[list[dict], list[dict]]:
     """Replay lesion edits by source identity even when a fresh attempt renumbers lesions."""
     old = {lesion["id"]: lesion for lesion in (previous or current)["lesions"]}
-    prior_decisions = {decision["id"]: decision for decision in (previous or {}).get("decisions_applied", [])}
+    prior_decisions = {decision["id"]: decision for decision in
+                       ((previous or {}).get("decisions_history") or (previous or {}).get("decisions_applied", []))}
     current_by_focus = {lesion.get("focus") or lesion.get("source_subject"): lesion for lesion in current["lesions"]}
     result, issues = [], []
     for original in decisions:
@@ -83,13 +85,19 @@ def bind_property_targets(decisions: list[dict], current: dict, previous: dict |
             old_lesion = old.get(target["lesion"], {})
             focus = (target.get("focus") or earlier.get("focus") or old_lesion.get("focus")
                      or target.get("mark") or earlier.get("mark") or old_lesion.get("source_identity") or old_lesion.get("source_subject"))
+            if focus:
+                target["focus" if (target.get("focus") or earlier.get("focus") or old_lesion.get("focus")) else "mark"] = focus
             lesion = current_by_focus.get(focus)
             if not lesion:
+                if history is not None:
+                    history.append(decision)
                 issues.append({"kind": "other", "severity": "info", "context": [decision["id"]],
                                "reason": "Decision lesion source identity no longer exists."})
                 continue
             target.update(lesion=lesion["id"])
             target["focus" if lesion.get("focus") else "mark"] = focus
+        if history is not None:
+            history.append(deepcopy(decision))
         result.append(decision)
     return result, issues
 
@@ -218,6 +226,7 @@ def reviewed_report(report: dict, interpretation: dict, decisions: list[dict]) -
 
 
 def validate_override(prop: str, override: dict) -> tuple[str, dict | None]:
+    from .inputs import CODE_DOMAINS
     from report_extractor.models import ObservationProperty, ObservationValue, PROPERTY_VALUE_TYPES
     from pydantic import TypeAdapter
 
@@ -226,6 +235,8 @@ def validate_override(prop: str, override: dict) -> tuple[str, dict | None]:
         value = TypeAdapter(ObservationValue).validate_python(value).model_dump(mode="json")
         if value["type"] not in PROPERTY_VALUE_TYPES[ObservationProperty(prop)]:
             raise ValueError("reviewed value type does not match the property")
+        if prop in CODE_DOMAINS and value["code"] not in CODE_DOMAINS[prop]:
+            raise ValueError(f"invalid {prop} code")
         components = {"laterality": "laterality", "level": "levels", "zone": "zones",
                       "anteroposterior": "anteroposterior", "textual_location": "description"}
         if prop in components:

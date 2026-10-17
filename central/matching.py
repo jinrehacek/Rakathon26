@@ -55,6 +55,11 @@ def dimensions_mm(obs: dict | None) -> list[float]:
             if measurement["unit"] in factors]
 
 
+def sides_compatible(report_sides: set[str], drawing_sides: set[str]) -> bool:
+    """A drawing may depict part of a bilateral focus, but cannot add an opposite lobe."""
+    return bool(report_sides and drawing_sides and drawing_sides <= report_sides)
+
+
 def _values(items) -> str:
     return ", ".join(sorted(items)) if items else "none"
 
@@ -150,7 +155,7 @@ def pair_score(report: dict, focus: dict, candidate: dict, size_bonus: bool = Fa
             else:
                 explanation = f"{details}. The drawing covers every reported level."
         elif prop == "laterality":
-            agrees = bool(text & drawing)
+            agrees = sides_compatible(text, drawing)
             score = SIDE_AGREE if agrees else SIDE_CONFLICT
             outcome = "agreement" if agrees else "conflict"
             review_status = "unreviewed" if agrees else "needs_review"
@@ -384,7 +389,7 @@ def match(report: dict, candidates: list[dict], *,
         explicit = bool(best) and all(
             ids and location(report, fid)["laterality"] and all(
                 index[cid]["side_basis"] == "explicit"
-                and location(report, fid)["laterality"] & set(index[cid]["sides"]) for cid in ids)
+                and sides_compatible(location(report, fid)["laterality"], set(index[cid]["sides"])) for cid in ids)
             for fid, ids in best.items())
         certainty = matching_confidence(best_score, runner_score, explicit)
 

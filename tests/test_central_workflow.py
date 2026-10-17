@@ -8,10 +8,13 @@ from copy import deepcopy
 from pathlib import Path
 
 from central.combine import combine
-from central.decisions import Decisions, apply_interpretation_decisions, bind_property_targets
+from central.decisions import Decisions, apply_interpretation_decisions, bind_property_targets, validate_override
 from central.output import identify_issues
 from central.pipeline import run_case
 from central_fixtures import write_case
+from central.candidates import build_candidates
+from central.lesions import build_interpretation
+from central.matching import match
 
 
 def decision(kind, target, value=None, ident="d1"):
@@ -78,6 +81,12 @@ class ReviewTests(unittest.TestCase):
         entry["timestamp"] = "2026-10-17T12:00:00"
         with self.assertRaises(ValueError):
             Decisions.model_validate({"decisions": [entry]})
+
+    def test_reviewed_codes_use_the_same_property_domains_as_inputs(self):
+        for prop, invalid in (("grade_group", "99"), ("histology_type", "0"),
+                              ("histology", "99"), ("multifocality", "unknown")):
+            with self.subTest(prop=prop), self.assertRaisesRegex(ValueError, "invalid .* code"):
+                validate_override(prop, {"value": {"type": "coded", "code": invalid, "original_wording": "review"}})
 
     def test_reviewer_value_retains_original_source_assessment(self):
         original = {"property": "grade_group", "status": "recorded", "value": {"type": "coded", "code": "2"},
@@ -198,6 +207,24 @@ class PipelineTests(unittest.TestCase):
             self.run_pipeline()
         self.assertEqual(self.calls, [])
 
+    def test_full_source_paths_are_compared_before_pairing(self):
+        report = json.loads(self.report_file.read_text())
+        report["document"]["source_path"] = "/batch-a/Other/preprocessed/synthetic-case/report.jpg"
+        report["text_layer"]["source_path"] = report["document"]["source_path"]
+        self.report_file.write_text(json.dumps(report))
+        drawing = json.loads(self.drawing_file.read_text())
+        drawing["extraction"]["source_path"] = "/batch-b/Other/preprocessed/synthetic-case/drawing.jpg"
+        self.drawing_file.write_text(json.dumps(drawing))
+        with self.assertRaisesRegex(ValueError, "same supplied preprocess case folder"):
+            self.run_pipeline()
+        self.assertEqual(self.calls, [])
+
+    def test_relative_source_paths_resolve_against_the_supplied_root(self):
+        drawing = json.loads(self.drawing_file.read_text())
+        drawing["extraction"]["source_path"] = "Other/preprocessed/synthetic-case/drawing.jpg"
+        self.drawing_file.write_text(json.dumps(drawing))
+        self.run_pipeline()
+
     def test_review_splits_group_without_moving_untouched_lesion_or_calling_llm(self):
         first, original = self.run_pipeline()
         self.save_decisions([decision("reject_membership", {"focus": "f1", "mark": "base.m1"})])
@@ -306,6 +333,63 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(all(i["status"] == "open" for i in reviewed["issues"] if i["kind"] == "matcher_disagreement"))
         self.assertEqual(reviewed["lesions"][0]["identity_certainty"]["level"], "low")
 
+    def test_explicit_resolution_is_retained_when_an_edit_filters_the_llm_issue(self):
+        def brain(body):
+            result = self.brain(body)
+            result["issues"] = [{"kind": "other", "severity": "question", "context": ["f1"], "reason": "Review this detail."}]
+            return result
+        path = run_case("synthetic-case", root=self.root, transport=brain)
+        original = json.loads(path.read_text())
+        issue = next(i for i in original["issues"] if i.get("reason") == "Review this detail.")
+        self.save_decisions([
+            decision("set_value", {"lesion": "L1", "property": "reported_label"},
+                     {"value": {"type": "text", "text": "Reviewed", "original_wording": "review"}}),
+            decision("resolve_issue", {"issue": issue["id"]}, ident="d2")])
+        _, reviewed = self.run_pipeline()
+        resolved = next(i for i in reviewed["issues"] if i["id"] == issue["id"])
+        self.assertEqual(resolved["status"], "resolved")
+        self.assertEqual(resolved["decision"]["id"], "d2")
+
+    def test_bilateral_drawing_conflicts_with_a_unilateral_report_focus(self):
+        report = json.loads(self.report_file.read_text())
+        drawing = json.loads(self.drawing_file.read_text())
+        candidates = build_candidates(drawing)
+        candidates[0]["sides"] = ["right", "left"]
+        candidates[0]["sectors_in"].append("pzpl_mid_ls")
+        matching = match(report, candidates, fixed_assignment={"f1": ["c1"], "f2": ["c2"]})
+        comparison = next(c for c in matching["comparisons"] if c["hypothesis"] == "h1" and c["property"] == "laterality")
+        self.assertEqual(comparison["score"], -3)
+        result = build_interpretation(report, drawing, candidates, matching)
+        self.assertTrue(any(i["kind"] == "side_conflict" for i in result["issues"]))
+        self.assertEqual(result["lesions"][0]["sectors"]["confidence"]["final"], "conflict")
+        laterality = next(p for p in result["lesions"][0]["properties"] if p["property"] == "laterality")
+        self.assertEqual(laterality["disposition"], "unresolved")
+        self.assertEqual(laterality["candidates"][1]["value"]["laterality"], "bilateral")
+
+    def test_unilateral_drawing_can_depict_part_of_a_bilateral_report_focus(self):
+        report = json.loads(self.report_file.read_text())
+        next(o for o in report["extraction"]["observations"] if o["id"] == "f1-laterality")["value"]["laterality"] = "bilateral"
+        drawing = json.loads(self.drawing_file.read_text())
+        candidates = build_candidates(drawing)
+        matching = match(report, candidates, fixed_assignment={"f1": ["c1"], "f2": ["c2"]})
+        comparison = next(c for c in matching["comparisons"] if c["hypothesis"] == "h1" and c["property"] == "laterality")
+        self.assertEqual(comparison["score"], 3)
+        self.assertFalse(any(i["kind"] == "side_conflict" for i in build_interpretation(report, drawing, candidates, matching)["issues"]))
+
+    def test_zone_conflict_retains_both_readings_and_lowers_sector_confidence(self):
+        report = json.loads(self.report_file.read_text())
+        drawing = json.loads(self.drawing_file.read_text())
+        candidates = build_candidates(drawing)
+        candidates[0]["zones"] = ["tz"]
+        candidates[0]["sectors_in"] = ["tzp_mid_rs"]
+        matching = match(report, candidates, fixed_assignment={"f1": ["c1"], "f2": ["c2"]})
+        result = build_interpretation(report, drawing, candidates, matching)
+        prop = next(p for p in result["lesions"][0]["properties"] if p["property"] == "zone")
+        self.assertEqual(prop["disposition"], "unresolved")
+        self.assertEqual([c["value"]["zones"] for c in prop["candidates"]], [["pz"], ["tz"]])
+        self.assertTrue(any(i["kind"] == "other" and "zone disagree" in i.get("explanation", "") for i in result["issues"]))
+        self.assertEqual(result["lesions"][0]["sectors"]["confidence"]["final"], "low")
+
     def test_changed_input_invalidates_missing_decision_target(self):
         self.run_pipeline()
         self.save_decisions([decision("assign_mark", {"focus": "gone", "mark": "mid.m1"})])
@@ -317,6 +401,25 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(any("no longer exists" in i.get("reason", "") for i in reviewed["issues"]))
         self.assertEqual(reviewed["decisions_applied"], [])
         self.assertEqual(len(self.calls), 1)
+
+    def test_skipped_decision_never_rebinds_to_a_reused_lesion_number(self):
+        self.run_pipeline()
+        self.save_decisions([decision("set_value", {"lesion": "L1", "property": "reported_label"},
+                                     {"value": {"type": "text", "text": "Old focus", "original_wording": "review"}})])
+        report = json.loads(self.report_file.read_text())
+        report["extraction"]["subjects"] = [s for s in report["extraction"]["subjects"] if s["id"] != "f1"]
+        for name in ("observations", "coverage"):
+            report["extraction"][name] = [o for o in report["extraction"][name] if o["subject_id"] != "f1"]
+        self.report_file.write_text(json.dumps(report))
+        _, changed = self.run_pipeline()
+        _, repeated = self.run_pipeline()
+        for result in (changed, repeated):
+            self.assertEqual(result["lesions"][0]["focus"], "f2")
+            self.assertEqual(result["decisions_applied"], [])
+            self.assertEqual(result["decisions_history"][0]["target"]["focus"], "f1")
+            label = next(p for p in result["lesions"][0]["properties"] if p["property"] == "reported_label")
+            self.assertEqual(label["status"], "not reported")
+            self.assertNotIn("decision", label)
 
     def test_old_llm_input_hashes_remain_stale_across_repeated_reruns(self):
         self.run_pipeline()

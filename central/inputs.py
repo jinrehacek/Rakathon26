@@ -23,6 +23,8 @@ OTHER_PROPERTIES = frozenset("finding_type laterality level zone textual_locatio
 REQUIRED_PROPERTIES = {"specimen": SPECIMEN_PROPERTIES, "tumour_focus": FOCUS_PROPERTIES, "other_finding": OTHER_PROPERTIES}
 ALLOWED_PROPERTIES = {**REQUIRED_PROPERTIES, "specimen": SPECIMEN_PROPERTIES | {"gleason_patterns", "gleason_score"}}
 LOCATION_COMPONENTS = {"laterality": "laterality", "level": "levels", "zone": "zones", "anteroposterior": "anteroposterior", "textual_location": "description"}
+CODE_DOMAINS = {"grade_group": {"1", "2", "3", "4", "5"}, "histology_type": set("1234567"),
+                "histology": set("123456"), "multifocality": {"multifocal", "unifocal"}}
 
 
 class Document(StrictModel):
@@ -189,10 +191,8 @@ def load_report(path: str | Path) -> dict:
                     _require(len(items) == len(set(items)), "duplicate location component")
         if obs.property == "gleason_patterns":
             _require(value.primary is not None and value.secondary is not None, "report-2 requires nested Gleason patterns")
-        domains = {"grade_group": {"1", "2", "3", "4", "5"}, "histology_type": set("1234567"),
-                   "histology": set("123456"), "multifocality": {"multifocal", "unifocal"}}
-        if obs.property in domains:
-            _require(value.code in domains[obs.property], f"invalid {obs.property} code")
+        if obs.property in CODE_DOMAINS:
+            _require(value.code in CODE_DOMAINS[obs.property], f"invalid {obs.property} code")
         if obs.property in {"histology_type", "histology", "multifocality"}:
             _require(bool(value.original_wording), "coded finding requires original wording")
         if obs.property == "reported_lesion_count":

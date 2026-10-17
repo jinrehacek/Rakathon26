@@ -20,14 +20,11 @@ def _snapshot(path: Path) -> tuple[Path, bytes]:
     return resolved, resolved.read_bytes()
 
 
-def _case_folder(source_path: str, case_id: str) -> tuple[str, ...]:
+def _case_folder(source_path: str, case_id: str, root: Path) -> Path:
     path = Path(source_path)
     if path.parent.name != case_id:
         raise ValueError("source path does not identify the requested preprocess case folder")
-    parts = path.parent.parts
-    if "preprocessed" in parts:
-        return parts[parts.index("preprocessed"):]
-    return path.parent.resolve().parts
+    return (path if path.is_absolute() else root / path).parent.resolve()
 
 
 def _stable_order(interpretation: dict, reference: dict) -> None:
@@ -131,8 +128,8 @@ def run_case(case_id: str, *, root: Path | None = None, report_path: Path | None
         raise ValueError("an input changed during validation; retry with stable files")
     if drawing["extraction"]["case_id"] != case_id:
         raise ValueError("drawing case_id does not match the requested preprocess case")
-    report_folder = _case_folder(report["document"]["source_path"], case_id)
-    drawing_folder = _case_folder(drawing["extraction"]["source_path"], case_id)
+    report_folder = _case_folder(report["document"]["source_path"], case_id, root)
+    drawing_folder = _case_folder(drawing["extraction"]["source_path"], case_id, root)
     if report_folder != drawing_folder:
         raise ValueError("report and drawing are not from the same supplied preprocess case folder")
     report_hash, drawing_hash = (hashlib.sha256(data).hexdigest() for data in (report_bytes, drawing_bytes))
@@ -153,14 +150,22 @@ def run_case(case_id: str, *, root: Path | None = None, report_path: Path | None
     same_inputs = bool(previous and previous["inputs"]["report"]["sha256"] == report_hash
                        and previous["inputs"]["drawing"]["sha256"] == drawing_hash)
     if previous:
-        history = {decision["id"]: decision for decision in previous["decisions_applied"]}
-        history.update({decision["id"]: decision for decision in decisions})
+        history = {decision["id"]: decision for decision in (previous.get("decisions_history") or previous["decisions_applied"])}
+        for entry in decisions:
+            prior = history.get(entry["id"])
+            if prior and entry["kind"] == "set_value":
+                for key in ("focus", "mark"):
+                    if prior["target"].get(key):
+                        entry["target"][key] = prior["target"][key]
+            history[entry["id"]] = entry
         decisions = list(history.values())
 
     candidates = build_candidates(drawing)
     matching = match(report, candidates)
     initial_interpretation = build_interpretation(report, drawing, candidates, matching)
-    decisions, binding_issues = bind_property_targets(decisions, initial_interpretation, previous)
+    decision_history = []
+    decisions, binding_issues = bind_property_targets(decisions, initial_interpretation, previous,
+                                                      history=decision_history)
     prior_rules_matching = previous["brains"]["rules"].get("matching", previous["matching"]) if same_inputs else None
     touched, decision_issues, applied = set(), [], []
     rerun = bool(previous and decision_snapshot)
@@ -258,6 +263,14 @@ def run_case(case_id: str, *, root: Path | None = None, report_path: Path | None
                                 decision=deepcopy(relevant[-1]), decision_records=deepcopy(relevant))
                 interpretation["issues"].append(resolved)
     interpretation["issues"] = identify_issues(interpretation["issues"])
+    if same_inputs:
+        current_issue_ids = {issue["id"] for issue in interpretation["issues"]}
+        for decision in decisions:
+            if decision["kind"] == "resolve_issue":
+                ident = decision["target"]["issue"]
+                if ident in prior_issues and ident not in current_issue_ids:
+                    interpretation["issues"].append(deepcopy(prior_issues[ident]))
+                    current_issue_ids.add(ident)
     interpretation, property_touched, property_applied = apply_interpretation_decisions(
         interpretation, decisions, source_interpretation=source_interpretation)
     if same_inputs:
@@ -286,5 +299,6 @@ def run_case(case_id: str, *, root: Path | None = None, report_path: Path | None
         "candidates": candidates, "matching": matching, **interpretation,
         "brains": {"rules": rules_brain, "llm": llm},
         "decisions_applied": list(applied.values()),
+        "decisions_history": decision_history,
     }
     return write_run(combined, case_dir)

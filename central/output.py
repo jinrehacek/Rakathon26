@@ -57,6 +57,7 @@ class CombinedOutput(Model):
     details: list[dict[str, Any]]
     brains: dict[str, Any]
     decisions_applied: list[dict[str, Any]]
+    decisions_history: list[dict[str, Any]] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def unique_identifiers(self):
