@@ -21,6 +21,7 @@ FOCUS_PROPERTIES = frozenset("reported_label dominant laterality level zone ante
 SPECIMEN_PROPERTIES = frozenset("classification_pt classification_pn classification_pm classification_r classification_l classification_v grade_group reported_lesion_count multifocality histology icd_o seminal_vesicle_invasion".split())
 OTHER_PROPERTIES = frozenset("finding_type laterality level zone textual_location".split())
 REQUIRED_PROPERTIES = {"specimen": SPECIMEN_PROPERTIES, "tumour_focus": FOCUS_PROPERTIES, "other_finding": OTHER_PROPERTIES}
+ALLOWED_PROPERTIES = {**REQUIRED_PROPERTIES, "specimen": SPECIMEN_PROPERTIES | {"gleason_patterns", "gleason_score"}}
 LOCATION_COMPONENTS = {"laterality": "laterality", "level": "levels", "zone": "zones", "anteroposterior": "anteroposterior", "textual_location": "description"}
 
 
@@ -159,7 +160,7 @@ def load_report(path: str | Path) -> dict:
     coverage = set()
     for check in extraction.coverage:
         _require(check.subject_id in subjects, "coverage references missing subject")
-        _require(check.property in REQUIRED_PROPERTIES[subjects[check.subject_id].kind], "coverage property outside subject scope")
+        _require(check.property in ALLOWED_PROPERTIES[subjects[check.subject_id].kind], "coverage property outside subject scope")
         _require(check.checked and check.source_complete and bool(check.rationale.strip()), "incomplete property coverage")
         pair = (check.subject_id, check.property)
         _require(pair not in coverage, "duplicate property coverage")
@@ -167,7 +168,7 @@ def load_report(path: str | Path) -> dict:
     seen = set()
     for obs in observations.values():
         _require(obs.subject_id in subjects, "observation references missing subject")
-        _require(obs.property in REQUIRED_PROPERTIES[subjects[obs.subject_id].kind], "observation property outside subject scope")
+        _require(obs.property in ALLOWED_PROPERTIES[subjects[obs.subject_id].kind], "observation property outside subject scope")
         _refs(obs.evidence_ids, evidence, "observation evidence")
         _refs(obs.derived_from, observations, "derived observation")
         pair = (obs.subject_id, obs.property)

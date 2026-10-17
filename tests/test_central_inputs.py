@@ -1,6 +1,7 @@
 """Contract failures stop a case before matching or external processing."""
 
 import json
+import hashlib
 import tempfile
 import unittest
 from pathlib import Path
@@ -88,6 +89,29 @@ class InputContractTests(unittest.TestCase):
         self.report_path.write_text('{"extraction":{},"extraction":{}}')
         with self.assertRaisesRegex(ValueError, "duplicate JSON key"):
             load_report(self.report_path)
+
+    def test_specimen_gleason_can_reach_the_specimen_grade_consistency_check(self):
+        from central.checks import run_checks
+        report = json.loads(self.report_path.read_text())
+        phrase = " Gleason 3+4=7, GG3."
+        start = len(report["text_layer"]["text"])
+        report["text_layer"]["text"] += phrase
+        report["text_layer"]["text_sha256"] = hashlib.sha256(report["text_layer"]["text"].encode()).hexdigest()
+        anchor = dict(report["extraction"]["evidence"][0], id="grade-evidence", quotation=phrase,
+                      start_offset=start, end_offset=start + len(phrase))
+        report["extraction"]["evidence"].append(anchor)
+        grade = next(obs for obs in report["extraction"]["observations"] if obs["id"] == "specimen-grade_group")
+        grade.update(status="recorded", value={"type": "coded", "code": "3", "original_wording": "GG3"},
+                     evidence_ids=["grade-evidence"])
+        grade.pop("unavailable_reason")
+        report["extraction"]["observations"].append({**grade, "id": "specimen-score", "property": "gleason_score",
+            "value": {"type": "gleason_score", "primary_pattern": 3, "secondary_pattern": 4, "total": 7, "original_wording": "3+4=7"}})
+        self.write(self.report_path, report)
+        validated = load_report(self.report_path)
+        issues = run_checks(validated, [], [])
+        self.assertEqual(len(issues), 1)
+        self.assertEqual(issues[0]["rule"]["id"], "isup-grade-group")
+        self.assertIn("specimen", issues[0]["context"])
 
     def test_unknown_drawing_version_is_refused(self):
         drawing = json.loads(self.drawing_path.read_text())

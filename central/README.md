@@ -18,6 +18,12 @@ The rules search all allowed focus-to-candidate assignments. Sector selection us
 
 The second reading uses Gemini 3.8 Flash. Set `GEMINI_API_KEY` or `GOOGLE_API_KEY` in the process environment. It receives JSON with geometry, pixel counts and image data removed. It receives no scans. External processing must be authorized for the particular data; the hackathon approval in the spec does not authorize production records.
 
+If the key is in the repository's existing `.env` file, load it with:
+
+```sh
+uv run --no-project --env-file .env .venv/bin/python -m central <case>
+```
+
 An unavailable or invalid LLM response leaves the rules draft and adds `llm_missing`. For an offline run:
 
 ```sh

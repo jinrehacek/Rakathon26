@@ -20,6 +20,16 @@ def _snapshot(path: Path) -> tuple[Path, bytes]:
     return resolved, resolved.read_bytes()
 
 
+def _case_folder(source_path: str, case_id: str) -> tuple[str, ...]:
+    path = Path(source_path)
+    if path.parent.name != case_id:
+        raise ValueError("source path does not identify the requested preprocess case folder")
+    parts = path.parent.parts
+    if "preprocessed" in parts:
+        return parts[parts.index("preprocessed"):]
+    return path.parent.resolve().parts
+
+
 def _stable_order(interpretation: dict, reference: dict) -> None:
     """A property edit does not silently renumber REDCap lesion instances."""
     prior = {lesion.get("focus") or lesion.get("source_subject"): lesion for lesion in reference["lesions"]}
@@ -76,9 +86,10 @@ def run_case(case_id: str, *, root: Path | None = None, report_path: Path | None
         raise ValueError("an input changed during validation; retry with stable files")
     if drawing["extraction"]["case_id"] != case_id:
         raise ValueError("drawing case_id does not match the requested preprocess case")
-    # The extractor's immutable source path must identify the same supplied case.
-    if case_id not in Path(report["document"]["source_path"]).parts:
-        raise ValueError("report source path does not identify the requested preprocess case")
+    report_folder = _case_folder(report["document"]["source_path"], case_id)
+    drawing_folder = _case_folder(drawing["extraction"]["source_path"], case_id)
+    if report_folder != drawing_folder:
+        raise ValueError("report and drawing are not from the same supplied preprocess case folder")
     report_hash, drawing_hash = (hashlib.sha256(data).hexdigest() for data in (report_bytes, drawing_bytes))
     decisions_file = decisions_path or case_dir / "decisions.json"
     decision_snapshot = _snapshot(decisions_file) if decisions_file.exists() else None
@@ -104,15 +115,12 @@ def run_case(case_id: str, *, root: Path | None = None, report_path: Path | None
     prior_rules_matching = previous["brains"]["rules"].get("matching", previous["matching"]) if same_inputs else None
     touched, decision_issues, applied = set(), [], []
     rerun = bool(previous and decision_snapshot)
-    if decisions:
+    if decisions or same_inputs:
         baseline = previous if same_inputs else {"matching": matching, "candidates": candidates}
         candidates, fixed, touched, decision_issues, applied = prepare_assignments(
             report, drawing, candidates, baseline, decisions, fresh=not same_inputs)
         matching = match(report, candidates, fixed_assignment=fixed,
                          previous_matching=prior_rules_matching)
-    elif same_inputs:
-        fixed = {h["focus"]: h["candidates"] for h in previous["matching"]["hypotheses"]}
-        matching = match(report, candidates, fixed_assignment=fixed, previous_matching=prior_rules_matching)
     source_interpretation = build_interpretation(report, drawing, candidates, matching)
     effective_report = reviewed_report(report, source_interpretation, decisions)
     if effective_report != report:

@@ -108,7 +108,9 @@ def prepare_assignments(report: dict, drawing: dict, candidates: list[dict], pre
                 member["subject"] for member in hypothesis.get("memberships", [])
                 if member["subject"] in marks)
     touched, issues, applied = set(), [], []
-    direct_choices = {}
+    direct_choices = {mark: candidate["source"].removeprefix("decision:")
+                      for candidate in old_candidates.values() if candidate["source"].startswith("decision:")
+                      for mark in candidate["marks"]}
     groups = {group["id"] for group in drawing["groups"]}
     for decision in decisions:
         target, kind = decision["target"], decision["kind"]

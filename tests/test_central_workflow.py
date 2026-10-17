@@ -135,6 +135,14 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(original["inputs"]["report"]["sha256"], later["inputs"]["report"]["sha256"])
         self.assertEqual(len(self.calls), 2)
 
+    def test_same_case_id_in_another_batch_does_not_establish_pairing(self):
+        drawing = json.loads(self.drawing_file.read_text())
+        drawing["extraction"]["source_path"] = "Other/preprocessed/another-batch/synthetic-case/drawing.jpg"
+        self.drawing_file.write_text(json.dumps(drawing))
+        with self.assertRaisesRegex(ValueError, "same supplied preprocess case folder"):
+            self.run_pipeline()
+        self.assertEqual(self.calls, [])
+
     def test_review_splits_group_without_moving_untouched_lesion_or_calling_llm(self):
         first, original = self.run_pipeline()
         self.save_decisions([decision("reject_membership", {"focus": "f1", "mark": "base.m1"})])
@@ -157,6 +165,15 @@ class PipelineTests(unittest.TestCase):
         level = next(p for p in reviewed["lesions"][0]["properties"] if p["property"] == "level")
         self.assertEqual(level["source_assessment"]["value"]["levels"], ["mid"])
         self.assertIn("decision:d2", reviewed["lesions"][0]["sectors"]["supports"])
+        self.assertEqual(len(self.calls), 1)
+
+    def test_empty_followup_decisions_keep_previous_split_assignments(self):
+        self.run_pipeline()
+        self.save_decisions([decision("reject_membership", {"focus": "f1", "mark": "base.m1"})])
+        _, previous = self.run_pipeline()
+        self.save_decisions([])
+        _, rerun = self.run_pipeline()
+        self.assertEqual(rerun["lesions"], previous["lesions"])
         self.assertEqual(len(self.calls), 1)
 
     def test_dominance_edit_keeps_lesion_identity_and_order(self):
