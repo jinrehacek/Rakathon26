@@ -60,15 +60,26 @@ Status: 2026-10-17. Local hackathon demo, not clinically validated.
 
 ## Preprocessing: current baseline
 
-The earlier local run produced **37 pairs from 80 JPG inputs**; six images were
-excluded. The MVP uses local OCR, pairs by printed Rakathon ID, assigns stable
-random case IDs, masks recognized IDs and writes copies without copied metadata.
-This is not proof of complete de-identification or production readiness.
+Preprocessing is a command-line script. It uses local Czech plus English OCR,
+pairs by printed Rakathon ID, assigns stable random case IDs, masks recognised
+IDs and writes fresh JPGs without copied metadata. No preprocessing web UI or
+HTML comparison-page generator remains.
 
-- [ ] Investigate all six excluded images: unreadable IDs, role detection,
-  missing partners, duplicate or conflicting IDs. Hold uncertain matches.
+The Linux run with Tesseract 5.5.0 paired all 40 cases from 80 scans, with no
+filename mismatches or skipped cases. The supplied main baseline paired 38 of 40,
+with cases 5 and 8 skipped. These are pairing results on this batch.
+
+- [x] Investigate the three unresolved drawing scans and the six excluded
+  batch inputs. Local OCR missed a template label, misread small printed ID
+  prefixes or assigned low confidence; dense-layout and focused crop retries
+  recovered them without lowering confidence or guessing IDs.
+- [ ] Test the fixed retries on another batch, especially conflicting IDs and
+  genuine missing partners. Keep uncertain matches held.
 - [ ] Run a fresh nested JPG/JPEG batch and reimport it. Verify stable case IDs,
   correct report/drawing roles, no duplicate cases and unchanged original files.
+- [ ] For future background or cron use, define when a complete input batch is
+  ready. Repeated runs currently reprocess all JPGs and reuse the case IDs.
+  Prevent overlapping jobs with a single lock. Do not silently join encounters.
 - [ ] Test 90/180/270-degree rotation and separately test small skew. Inspect
   orientation and redaction coordinates, not just OCR success.
 - [ ] Inspect faint pink/yellow annotations, handwriting and dimensions after
@@ -83,9 +94,20 @@ This is not proof of complete de-identification or production readiness.
 
 ## ID round-trip: must not break
 
+- [ ] Consume `preprocess-handoff-v2` in the downstream handoff. Each pair now
+  carries `original_id` as well as its random case ID, report/drawing paths and
+  output hashes. Update exact-shape checks in `review-ui/prepare_showcase.py`;
+  keep extraction inputs pinned and do not treat the metadata as an image path.
+- [ ] Carry the manifest's `original_id` through central output and doctor review
+  to the local REDCap export step. Keep it distinct from `record_id`. Current
+  values such as `Rakathon05` identify the artificial source case and must never
+  be written into REDCap's `birth_id`. Future rodné číslo support needs an
+  explicit identifier type and its own detection, validation and mapping.
 - [ ] Preserve the private [ID dictionary](../preprocess/README.md#handoff)
   securely. It is plaintext and must not be shared with the analysis batch.
 - [ ] Keep the random `case_id` unchanged through extraction, matching and UI.
+- [ ] Have downstream retain the manifest's `output_sha256` values with returned
+  analysis JSON; these identify the exact handed-off images, not private originals.
 - [ ] Test the full round-trip on several cases: original printed ID -> paired
   random ID -> analysis result -> local original-ID lookup -> correct sources.
 - [ ] Verify both source hashes and fail on missing/ambiguous mappings. Test a

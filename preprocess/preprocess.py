@@ -3,6 +3,7 @@
 import argparse
 from collections import Counter, defaultdict
 import csv
+from difflib import SequenceMatcher
 import hashlib
 from io import BytesIO, StringIO
 import json
@@ -21,11 +22,17 @@ HERE = Path(__file__).resolve().parent
 ID_PATTERN = re.compile(r"(?<!\w)rakathon\s*([0-9]+)(?!\w)", re.IGNORECASE)
 
 
+class NoPairsError(RuntimeError):
+    def __init__(self, issues: dict):
+        self.issues = issues
+        super().__init__("No confident pairs found; see the private last-run.json locally.")
+
+
 def ocr(image: Image.Image, psm: int) -> list[dict]:
     with BytesIO() as buffer:
         image.save(buffer, format="PNG")
         result = subprocess.run(
-            ["tesseract", "stdin", "stdout", "-l", "eng", "--psm", str(psm), "tsv"],
+            ["tesseract", "stdin", "stdout", "-l", "ces+eng", "--psm", str(psm), "tsv"],
             input=buffer.getvalue(), capture_output=True, timeout=45, check=False,
             env={**os.environ, "OMP_THREAD_LIMIT": "1"},
         )
@@ -90,40 +97,91 @@ def role(words: list[dict]) -> str | None:
     return "report" if report else None
 
 
+def read_region(image: Image.Image, box: tuple, width: int, psm: int) -> list[dict]:
+    with image.crop(box) as crop:
+        height = max(1, round(crop.height * width / crop.width))
+        with crop.resize((width, height)) as scaled:
+            words = ocr(scaled, psm)
+        for word in words:
+            left, top, right, bottom = word["box"]
+            word["box"] = (
+                box[0] + round(left * crop.width / width),
+                box[1] + round(top * crop.height / height),
+                box[0] + round(right * crop.width / width),
+                box[1] + round(bottom * crop.height / height),
+            )
+    return words
+
+
+def focused_identifiers(image: Image.Image, words: list[dict]) -> list[dict]:
+    anchors = []
+    for word in words:
+        letters = re.sub("[^a-z]", "", word["text"].casefold())
+        similarity = SequenceMatcher(None, letters, "rakathon").ratio()
+        if similarity >= .7:
+            anchors.append((similarity, word["box"]))
+    candidates, seen = [], set()
+    for _, (left, top, right, bottom) in sorted(anchors, reverse=True):
+        height = bottom - top
+        box = (
+            max(0, left - height), max(0, top - height // 2),
+            min(image.width, right + height * 5), min(image.height, bottom + height // 2),
+        )
+        if height <= 0 or box in seen or box[2] <= box[0] or box[3] <= box[1]:
+            continue
+        seen.add(box)
+        for factor in (2, 3):
+            for psm in (7, 6):
+                # Similarity only locates a crop. The accepted ID must be read
+                # literally by OCR; never repair letters/digits or guess an ID.
+                found = identify(read_region(image, box, (box[2] - box[0]) * factor, psm))
+                for candidate in found:
+                    candidate["method"] = f"focused_line_{factor}x_psm{psm}"
+                candidates.extend(found)
+        if len(seen) >= 6:
+            break
+    return candidates
+
+
 def analyze(image: Image.Image) -> dict:
+    best = {"id": None, "role": None, "candidates": [], "confident": False, "rotation": 0}
     for angle in (0, 90, 180, 270):
         with image.rotate(-angle, expand=True) as upright:
-            scale = min(1, 2200 / upright.width)
-            with upright.resize((round(upright.width * scale), round(upright.height * scale))) as small:
-                words = ocr(small, 11)
-            kind = role(words)
-            candidates = identify(words)
-            for candidate in candidates:
-                candidate["box"] = tuple(round(value / scale) for value in candidate["box"])
-            # Full-page OCR can miss small printed IDs. Retry the lower band, but
-            # never use the band position or source filename as proof of identity.
-            top = upright.height * 3 // 4
-            with upright.crop((0, top, upright.width, upright.height)) as band:
-                zoom = max(1, 2600 / band.width)
-                with band.resize((round(band.width * zoom), round(band.height * zoom))) as enlarged:
-                    bottom = identify(ocr(enlarged, 6))
-            for candidate in bottom:
-                left, y, right, bottom_y = candidate["box"]
-                candidate["box"] = (
-                    round(left / zoom), top + round(y / zoom),
-                    round(right / zoom), top + round(bottom_y / zoom),
+            page = (0, 0, upright.width, upright.height)
+            band = (0, upright.height * 3 // 4, upright.width, upright.height)
+            words = read_region(upright, page, min(upright.width, 2200), 11)
+            kinds = {role(words)} - {None}
+            bottom = read_region(upright, band, max(upright.width, 2600), 6)
+            candidates = identify(words) + identify(bottom)
+            words.extend(bottom)
+
+            def ready() -> bool:
+                return len(kinds) == 1 and len({item["id"] for item in candidates}) == 1 and any(
+                    item["confidence"] >= 70 for item in candidates
                 )
-            candidates.extend(bottom)
+
+            if not ready() and len({item["id"] for item in candidates}) <= 1:
+                dense = read_region(upright, page, min(upright.width, 2200), 6)
+                kinds.update({role(dense)} - {None})
+                candidates.extend(identify(dense))
+                words.extend(dense)
+                if not ready():
+                    enlarged = read_region(upright, band, max(upright.width, 3200), 6)
+                    candidates.extend(identify(enlarged))
+                    words.extend(enlarged)
+                if not ready() and len(kinds) == 1:
+                    candidates.extend(focused_identifiers(upright, words))
             values = {candidate["id"] for candidate in candidates}
-            if kind and values:
-                return {
-                    "role": kind, "rotation": angle, "candidates": candidates,
-                    "id": next(iter(values)) if len(values) == 1 else None,
-                    "confident": len(values) == 1 and max(
-                        candidate["confidence"] for candidate in candidates
-                    ) >= 70,
-                }
-    return {"id": None, "role": None, "candidates": [], "confident": False, "rotation": 0}
+            result = {
+                "role": next(iter(kinds)) if len(kinds) == 1 else None, "rotation": angle,
+                "candidates": candidates, "id": next(iter(values)) if len(values) == 1 else None,
+                "confident": ready(), "coordinate_frame": "upright_scan_after_exif_and_rotation",
+            }
+            if result["role"] and candidates:
+                return result
+            if candidates and not best["candidates"]:
+                best = result
+    return best
 
 
 def load(path: Path) -> Image.Image:
@@ -197,7 +255,10 @@ def run(folder: Path) -> dict:
         except (OSError, ValueError, subprocess.TimeoutExpired):
             issues["unreadable_or_ocr_timeout"] += 1
         print(f"Read {index}/{len(inputs)} JPGs", file=sys.stderr, flush=True)
-    manifest = {"review_status": "not_reviewed", "data_scope": "artificial", "cases": {}}
+    manifest = {
+        "schema_version": "preprocess-handoff-v2",
+        "review_status": "not_reviewed", "data_scope": "artificial", "cases": {}, "output_sha256": {},
+    }
     try:
         batch.mkdir(mode=0o700)
         for identifier, members in groups.items():
@@ -222,13 +283,18 @@ def run(folder: Path) -> dict:
                                         quality=95, subsampling=0, exif=b"", icc_profile=None)
             mapping[identifier] = {"case_id": case_id, "sources": members}
             manifest["cases"][case_id] = {
+                "original_id": identifier,
                 "report": f"{case_id}/report.jpg", "drawing": f"{case_id}/drawing.jpg",
+            }
+            manifest["output_sha256"][case_id] = {
+                role: hashlib.sha256((case_folder / f"{role}.jpg").read_bytes()).hexdigest()
+                for role in ("report", "drawing")
             }
         write_json(mapping_file, mapping)
         write_json(private / "last-run.json", {"files": records, "issues": dict(issues)})
         if not manifest["cases"]:
             batch.rmdir()
-            raise RuntimeError("No confident pairs found; see the private last-run.json locally.")
+            raise NoPairsError(dict(issues))
         write_json(batch / "manifest.json", manifest)
     except (OSError, ValueError, RuntimeError):
         if batch.exists():

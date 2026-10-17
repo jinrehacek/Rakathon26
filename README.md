@@ -12,6 +12,10 @@ Local scan preprocessing and pseudonymization of printed Rakathon IDs. See [prep
 cd preprocess && uv sync --python 3.12 && uv run python -I preprocess.py ../Other/data --artificial-data
 ```
 
+The script runs without prompts. Each output case has `report.jpg`, `drawing.jpg`
+and its `original_id` in a versioned manifest. Czech plus English OCR is local.
+See the [handoff contract](preprocess/README.md#handoff).
+
 ### `report_extractor/`
 
 Czech OCR and Gemini report extraction with evidence-backed `report-3` output. See [report_extractor/README.md](report_extractor/README.md).
